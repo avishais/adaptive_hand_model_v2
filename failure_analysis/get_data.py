@@ -58,16 +58,10 @@ class KDE_failure():
         self.SA_test = np.concatenate((self.SA[inx_fail], self.SA[inx_suc]), axis=0)
         self.done_test = np.concatenate((self.done[inx_fail], self.done[inx_suc]), axis=0)
         
-        print self.SA.shape[0]
         self.SA = np.delete(self.SA, inx_fail, axis=0)
         self.SA = np.delete(self.SA, inx_suc, axis=0)
         self.done = np.delete(self.done, inx_fail, axis=0)
         self.done = np.delete(self.done, inx_suc, axis=0)
-        print self.SA.shape[0]
-
-        print self.SA_test
-        print self.done_test
-
 
     def gaussian(self, s1, s2, b=1):
         x = np.linalg.norm(sa-s2)
@@ -83,7 +77,8 @@ class KDE_failure():
         return K/N
 
     def probability(self, sa):
-        idx = self.kdt.query_radius(sa, r=r)
+        idx = self.kdt.query_radius(sa, r=self.r)
+        print idx
 
         sa_nn = self.SA[idx]
         done_nn = self.done[idx]
@@ -94,6 +89,11 @@ class KDE_failure():
 if __name__ == '__main__':
     
     K = KDE_failure()
+
+    SA_test = K.SA_test
+
+    for i in range(SA_test.shape[0]):
+        print K.probability(SA_test[i].reshape(1,-1))
     
 
 
