@@ -11,7 +11,7 @@ class KDE_failure():
     def __init__(self, discrete = True):
 
         # path = '/home/pracsys/catkin_ws/src/rutgers_collab/src/sim_transition_model/data/'
-        path = './'
+        path = '../data/'
         mode = 'discrete' if discrete else 'cont'
         self.file_name = path + 'transition_data_' + mode + '_test.obj'
 
@@ -32,7 +32,7 @@ class KDE_failure():
 
         # M = self.memory[:100000]
         # print('Saving data...')
-        # file_pi = open('transition_data_discrete_test.obj', 'wb')
+        # file_pi = open('../data/transition_data_discrete_test.obj', 'wb')
         # pickle.dump(M, file_pi)
         # print('Saved transition data of size %d.'%len(M))
         # file_pi.close()
@@ -50,7 +50,7 @@ class KDE_failure():
             self.SA[:,i] = (self.SA[:,i]-self.x_min[i])/(self.x_max[i]-self.x_min[i])
 
         # Test data
-        ni = 10
+        ni = 2
         T = np.where(self.done)[0]
         inx_fail = T[np.random.choice(T.shape[0], ni, replace=False)]
         T = np.where(np.logical_not(self.done))[0]
@@ -63,27 +63,58 @@ class KDE_failure():
         self.done = np.delete(self.done, inx_fail, axis=0)
         self.done = np.delete(self.done, inx_suc, axis=0)
 
+        
+
     def gaussian(self, s1, s2, b=1):
-        x = np.linalg.norm(sa-s2)
+        x = np.linalg.norm(s1-s2)
         return np.exp(-x**2/(2*b**2))/(b*np.sqrt(2*np.pi))
 
     def KDE(self, sa, sa_nn):
 
         N = sa_nn.shape[0]
+        if N==0:
+            return 0.0
+
         K = 0
-        for _ in range(N):
-            K += self.gaussian(sa_nn, sa)
+        for i in range(N):
+            K += self.gaussian(sa_nn[i], sa)
         
-        return K/N
+        return K#/N
 
     def probability(self, sa):
-        idx = self.kdt.query_radius(sa, r=self.r)
-        print idx
+        idx = self.kdt.query_radius(sa, r=self.r)[0]
+        if len(idx)==0:
+            return 1.0
 
         sa_nn = self.SA[idx]
         done_nn = self.done[idx]
 
-        return self.KDE(sa, sa_nn[done_nn]) / self.KDE(sa, sa_nn)
+        # sa_nn = np.array([[3,3],[1.5,2.3],[1.5,1.6]]).reshape(3,2)
+        # done_nn = np.array([True,False,False])
+        # sa = np.array([2.,2.]).reshape(1,2)
+
+        # print sa_nn.shape, sa_nn
+        # print sa
+
+        K1 = self.KDE(sa, sa_nn[done_nn])
+        K2 = self.KDE(sa, sa_nn)
+        print K1, K2
+
+        if K1/K2 > 1.:
+            print '-------'
+            print sa_nn
+            print done_nn
+            print sa
+            c = 0
+            for j in range(done_nn.shape[0]):
+                if done_nn[j]:
+                    c += 1
+            print c, done_nn.shape[0]
+
+
+            print '-------'
+
+        return K1/K2
 
 
 if __name__ == '__main__':
