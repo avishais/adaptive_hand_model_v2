@@ -2,7 +2,7 @@ disp('Loading data...');
 
 IsDiscrete = 0;
 Save2Ros = 0;
-n = 500000;
+n = 1000000;
 
 if IsDiscrete
     file = '/home/pracsys/catkin_ws/src/rutgers_collab/src/sim_transition_model/data/transition_data_discrete.db';
@@ -24,7 +24,7 @@ else
     
     D = clean(D);
     
-    D = dilute(D, n, is_start, is_end);
+%     D = dilute(D, n, is_start, is_end);
     save('sim_data_cont.mat', 'D', 'is_start', 'is_end');
     if Save2Ros
         save('/home/pracsys/catkin_ws/src/rutgers_collab/src/sim_transition_model/data/sim_data_cont.mat', 'D', 'is_start', 'is_end');

@@ -8,12 +8,26 @@ GP = gp_class(1, 0, 0);
 Sr = GP.Xtest;
 I = GP.I;
 
+%%
+Q = load('../data/sim_data_cont.mat');
+X = Q.D;
+clf
+plot(X(:,1),X(:,2),'.')
+hold on
+
+sa = [36.8722071379,110.1227407074,14.3052131198,48.1512971938,1,1];
+[sp, sigma] = GP.predict(sa(1:4), sa(5:6));
+
+plot(sa(1),sa(2),'*r');
+plot(sp(1),sp(2),'*k');
+hold off
+
 
 %% open loop
 figure(2)
 clf
 hold on
-plot(Sr(:,1),Sr(:,2),'-b','linewidth',2,'markerfacecolor','y');
+plot(Sr(:,1),Sr(:,2),'.b','linewidth',2,'markerfacecolor','y');
 axis equal
 
 tic;
@@ -47,6 +61,8 @@ disp(toc)
 disp(['mse = ' num2str(MSE(Sr, S) * px2mm)]);
 
 % save(['./paths_solution_mats/pred_' data_source '_' num2str(mode) '_' num2str(test_num) '_test.mat'],'data_source','I','loss','mode','S','SI','Sr','SRI','test_num','w','Xtest');
+
+
 
 %%
 

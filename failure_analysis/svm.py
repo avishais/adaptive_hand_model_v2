@@ -43,7 +43,7 @@ class KDE_failure():
             T = np.where(self.done)[0]
             inx_fail = T
             T = np.where(np.logical_not(self.done))[0]
-            inx_suc = T[np.random.choice(T.shape[0], 10000, replace=False)]
+            inx_suc = T[np.random.choice(T.shape[0], 30000, replace=False)]
             self.SA = np.concatenate((self.SA[inx_fail], self.SA[inx_suc]), axis=0)
             self.done = np.concatenate((self.done[inx_fail], self.done[inx_suc]), axis=0)
 
@@ -99,11 +99,21 @@ if __name__ == '__main__':
     if take_test_data:
         SA_test = K.SA_test
         s = 0
+        s_suc = 0; c_suc = 0
+        s_fail = 0; c_fail = 0
         for i in range(SA_test.shape[0]):
             p, fail = K.probability(SA_test[i].reshape(1,-1))
             print p, K.done_test[i], fail
             s += 1 if fail == K.done_test[i] else 0
-        print 'Success rate: ' + str(float(s)/SA_test.shape[0])
+            if K.done_test[i]:
+                c_fail += 1
+                s_fail += 1 if fail else 0
+            else:
+                c_suc += 1
+                s_suc += 1 if not fail else 0
+        print 'Success rate: ' + str(float(s)/SA_test.shape[0]*100)
+        print 'Drop prediction accuracy: ' + str(float(s_fail)/c_fail*100)
+        print 'Success prediction accuracy: ' + str(float(s_suc)/c_suc*100)
     
 
 

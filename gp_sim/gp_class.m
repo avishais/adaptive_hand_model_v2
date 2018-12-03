@@ -87,8 +87,8 @@ classdef gp_class < handle
                 Q = load('../data/sim_data_cont.mat');
             end
             D = Q.D;
-            is_start = 5838;%Q.is_start;%+90;
-            is_end = is_start+1150;%Q.is_end; 8406;%
+            is_start = Q.is_start;%+90;
+            is_end = Q.is_end; 
             
             obj.Xtraining = [D(1:is_start-1,:); D(is_end+1:end,:)];
             obj.Xtest = D(is_start:is_end,:);
