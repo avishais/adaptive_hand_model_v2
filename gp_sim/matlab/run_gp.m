@@ -8,21 +8,6 @@ GP = gp_class(1, 0, 0);
 Sr = GP.Xtest;
 I = GP.I;
 
-%%
-Q = load('../data/sim_data_cont.mat');
-X = Q.D;
-clf
-plot(X(:,1),X(:,2),'.')
-hold on
-
-sa = [36.8722071379,110.1227407074,14.3052131198,48.1512971938,1,1];
-[sp, sigma] = GP.predict(sa(1:4), sa(5:6));
-
-plot(sa(1),sa(2),'*r');
-plot(sp(1),sp(2),'*k');
-hold off
-
-
 %% open loop
 figure(2)
 clf

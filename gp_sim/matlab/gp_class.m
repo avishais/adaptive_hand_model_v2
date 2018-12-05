@@ -82,9 +82,9 @@ classdef gp_class < handle
             disp('Loading data...');
             
             if obj.IsDiscrete
-                Q = load('../data/sim_data_discrete.mat');
+                Q = load('../../data/sim_data_discrete.mat');
             else
-                Q = load('../data/sim_data_cont.mat');
+                Q = load('../../data/sim_data_cont.mat');
             end
             D = Q.D;
             is_start = Q.is_start;%+90;

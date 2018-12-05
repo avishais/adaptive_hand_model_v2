@@ -1,6 +1,6 @@
 disp('Loading data...');
 
-IsDiscrete = 0;
+IsDiscrete = 1;
 Save2Ros = 0;
 n = 1000000;
 
@@ -9,8 +9,9 @@ if IsDiscrete
     is_start = 1;
     is_end = 260;%1900; %260;
     D = dlmread(file);
+    D = clean(D);
     
-    D = dilute(D, n, is_start, is_end);
+%     D = dilute(D, n, is_start, is_end);
     
     save('sim_data_discrete.mat', 'D', 'is_start', 'is_end');
     if Save2Ros
