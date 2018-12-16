@@ -194,7 +194,14 @@ classdef gp_class < handle
             sigma_minus = obj.denormz(sp - sigma);
             
             sp = obj.denormz(sp);
-            sigma = sp -sigma_minus;
+            sigma = sp - sigma_minus;
+        end
+        
+        function s_next = propagate(obj, s, a)
+            
+            [sp, sigma] = obj.predict(s, a);
+            
+            s_next = normrnd(sp, sigma);
             
         end
         
