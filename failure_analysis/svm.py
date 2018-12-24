@@ -7,7 +7,7 @@ from sklearn import svm
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 
-take_test_data = True
+take_test_data = False
 gen_new_data = False
 
 class SVM_failure():
@@ -53,6 +53,7 @@ class SVM_failure():
                 pickle.dump([self.SA, self.done], f)
             print('Saved svm data.')
         else:
+            print('Loading data from ' + 'svm_data_' + self.mode + '.obj')
             with open(path + 'svm_data_' + self.mode + '.obj', 'rb') as f: 
                 self.SA, self.done = pickle.load(f)
             print('Loaded svm data.')
@@ -91,6 +92,7 @@ class SVM_failure():
             sa = (sa - self.x_mean) / self.x_std
 
         p = self.clf.predict_proba(sa)[0]
+
         return p, self.clf.predict(sa)
 
 
@@ -106,6 +108,7 @@ if __name__ == '__main__':
             s_suc = 0; c_suc = 0
             s_fail = 0; c_fail = 0
             for i in range(SA_test.shape[0]):
+                # print SA_test[i]
                 p, fail = K.probability(SA_test[i].reshape(1,-1))
                 fail = p[1]>0.5
                 print p, K.done_test[i], fail
@@ -125,26 +128,22 @@ if __name__ == '__main__':
         s_max = np.array([93.31538391, 143.04187012,  66.03091431,  79.83042908])
         s_min = np.array([-87.74127197,  -5.84844971,   2.18996787,   0.47996914])
         
-        N = 10
+        N = 100
         sx = np.linspace(s_min[0], s_max[0], N)
         sy = np.linspace(s_min[1], s_max[1], N)
         Sx, Sy = np.meshgrid(sx, sy)
 
-        load = np.array([36.1070, 15.8532])
-        action = np.array([0.,1.])
+        load = np.array([15.0, 25.0])
+        action = np.array([1.,-1.]) # [1,-1]-right, [-1,1]-left
         A = np.array([0,-1,1])
 
         C = np.zeros((N,N))
         for i in range(N):
             for j in range(N):
                 pos = np.array([Sx[i,j], Sy[i,j]])
-                load[0] = np.random.uniform(s_min[2], s_max[2])
-                load[1] = np.random.uniform(s_min[3], s_max[3])
-                action[0] = np.random.randint(0, 3)
-                action[1] = np.random.randint(0, 3)
                 sa = np.concatenate((pos, load, action), axis = 0)
                 p, fail = K.probability(sa.reshape(1,-1))
-                print sa, p, fail==1
+                # print sa, p, fail[0]==1
                 C[i,j] = p[1]
 
         h = plt.contourf(sx,sy,C)
