@@ -5,11 +5,12 @@ import pickle
 from sklearn.neighbors import KDTree #pip install -U scikit-learn
 from sklearn import svm
 from sklearn.preprocessing import StandardScaler
+import matplotlib.pyplot as plt
 
 take_test_data = True
 gen_new_data = False
 
-class KDE_failure():
+class SVM_failure():
 
     r = 0.1
 
@@ -23,7 +24,8 @@ class KDE_failure():
 
     def load_data(self, gen=True):
 
-        path = '/home/pracsys/catkin_ws/src/rutgers_collab/src/sim_transition_model/data/'
+        # path = '/home/pracsys/catkin_ws/src/rutgers_collab/src/sim_transition_model/data/'
+        path = '../data/'
 
         if gen:
             file_name = path + 'transition_data_' + self.mode + '.obj'
@@ -94,26 +96,65 @@ class KDE_failure():
 
 if __name__ == '__main__':
     
-    K = KDE_failure(False)
+    K = SVM_failure(True)
 
-    if take_test_data:
-        SA_test = K.SA_test
-        s = 0
-        s_suc = 0; c_suc = 0
-        s_fail = 0; c_fail = 0
-        for i in range(SA_test.shape[0]):
-            p, fail = K.probability(SA_test[i].reshape(1,-1))
-            print p, K.done_test[i], fail
-            s += 1 if fail == K.done_test[i] else 0
-            if K.done_test[i]:
-                c_fail += 1
-                s_fail += 1 if fail else 0
-            else:
-                c_suc += 1
-                s_suc += 1 if not fail else 0
-        print 'Success rate: ' + str(float(s)/SA_test.shape[0]*100)
-        print 'Drop prediction accuracy: ' + str(float(s_fail)/c_fail*100)
-        print 'Success prediction accuracy: ' + str(float(s_suc)/c_suc*100)
+    if 0:
+
+        if take_test_data:
+            SA_test = K.SA_test
+            s = 0
+            s_suc = 0; c_suc = 0
+            s_fail = 0; c_fail = 0
+            for i in range(SA_test.shape[0]):
+                p, fail = K.probability(SA_test[i].reshape(1,-1))
+                fail = p[1]>0.5
+                print p, K.done_test[i], fail
+                s += 1 if fail == K.done_test[i] else 0
+                if K.done_test[i]:
+                    c_fail += 1
+                    s_fail += 1 if fail else 0
+                else:
+                    c_suc += 1
+                    s_suc += 1 if not fail else 0
+            print 'Success rate: ' + str(float(s)/SA_test.shape[0]*100)
+            print 'Drop prediction accuracy: ' + str(float(s_fail)/c_fail*100)
+            print 'Success prediction accuracy: ' + str(float(s_suc)/c_suc*100)
+
+    else:
+
+        s_max = np.array([93.31538391, 143.04187012,  66.03091431,  79.83042908])
+        s_min = np.array([-87.74127197,  -5.84844971,   2.18996787,   0.47996914])
+        
+        N = 10
+        sx = np.linspace(s_min[0], s_max[0], N)
+        sy = np.linspace(s_min[1], s_max[1], N)
+        Sx, Sy = np.meshgrid(sx, sy)
+
+        load = np.array([36.1070, 15.8532])
+        action = np.array([0.,1.])
+        A = np.array([0,-1,1])
+
+        C = np.zeros((N,N))
+        for i in range(N):
+            for j in range(N):
+                pos = np.array([Sx[i,j], Sy[i,j]])
+                load[0] = np.random.uniform(s_min[2], s_max[2])
+                load[1] = np.random.uniform(s_min[3], s_max[3])
+                action[0] = np.random.randint(0, 3)
+                action[1] = np.random.randint(0, 3)
+                sa = np.concatenate((pos, load, action), axis = 0)
+                p, fail = K.probability(sa.reshape(1,-1))
+                print sa, p, fail==1
+                C[i,j] = p[1]
+
+        h = plt.contourf(sx,sy,C)
+        plt.colorbar(h)
+        plt.show()
+
+
+
+    
+
     
 
 
