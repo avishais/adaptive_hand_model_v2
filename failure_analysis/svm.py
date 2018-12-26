@@ -133,7 +133,7 @@ if __name__ == '__main__':
         sy = np.linspace(s_min[1], s_max[1], N)
         Sx, Sy = np.meshgrid(sx, sy)
 
-        load = np.array([15.0, 25.0])
+        load = np.array([30.0, 30.0])
         action = np.array([1.,-1.]) # [1,-1]-right, [-1,1]-left
         A = np.array([0,-1,1])
 

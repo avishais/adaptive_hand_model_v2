@@ -9,10 +9,8 @@ import pickle
 import math
 from diffusionMaps import DiffusionMap
 
-
 saved = False
-
-discrete = False
+discrete = True
 useDiffusionMaps = True
 
 # Number of NN
@@ -26,9 +24,10 @@ print('Loading data...')
 if discrete:
     Q = loadmat('../../data/sim_data_discrete.mat')
     Qtrain = Q['D']
-    is_start = Q['is_start'][0][0]; is_end = Q['is_end'][0][0]-100
+    is_start = Q['is_start'][0][0]; is_end = Q['is_end'][0][0]#-100
     Qtest = Qtrain[is_start:is_end,:]
     Qtrain = np.concatenate((Qtrain[:is_start,:], Qtrain[is_end:,:]), axis=0)
+    Qtrain = Qtrain[np.random.choice(Qtrain.shape[0], 300000, replace=False),:]
 else:
     Q = loadmat('../../data/sim_data_cont.mat')
     Qtrain = Q['D']
@@ -36,7 +35,6 @@ else:
     Qtest = Qtrain[is_start:is_end,:]
     Qtrain = np.concatenate((Qtrain[:is_start,:], Qtrain[is_end:,:]), axis=0)
     # Qtrain = Qtrain[np.random.choice(Qtrain.shape[0], 300000, replace=False),:]
-
 print('Loaded training data of ' + str(Qtrain.shape[0]) + '.')
 
 state_action_dim = 6 
