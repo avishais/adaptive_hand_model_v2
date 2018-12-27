@@ -340,6 +340,7 @@ class Covariance(object):
 		# theta_min = minimize(func,theta_start,bounds,constr,fprime = fprime, method=["l_bfgs_b"])#all, tnc, l_bfgs_b, cobyla, slsqp, bfgs, powell, cg, simplex or list of some of them
 		# except:
 		theta_min = theta_start
+		print theta_min
 
 		return np.array(theta_min)
 

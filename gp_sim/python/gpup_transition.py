@@ -8,6 +8,7 @@ from GaussianProcess import GaussianProcess
 from Covariance_original import GaussianCovariance
 from UncertaintyPropagation import UncertaintyPropagationApprox, UncertaintyPropagationExact, UncertaintyPropagationMC
 import matplotlib.pyplot as plt
+from matplotlib.patches import Ellipse
 import pickle
 from sklearn.neighbors import KDTree #pip install -U scikit-learn
 from diffusionMaps import DiffusionMap
@@ -26,14 +27,14 @@ if useDiffusionMaps:
     K_manifold = 200
     df = DiffusionMap(sigma=1, embedding_dim=2, k=K)
 else:
-    K = 200 
+    K = 100 
 K_up = 100
 
 print('Loading data...')
 if discrete:
     Q = loadmat('../../data/sim_data_discrete.mat')
     Qtrain = Q['D']
-    is_start = Q['is_start'][0][0]; is_end = Q['is_end'][0][0]#-150
+    is_start = Q['is_start'][0][0]; is_end = Q['is_end'][0][0]#-250
 else:
     Q = loadmat('../../data/sim_data_cont.mat')
     Qtrain = Q['D']
@@ -83,6 +84,10 @@ kdt = KDTree(Xtrain_nn, leaf_size=20, metric='euclidean')
 # K = 200
 # K_many = 500
 
+# theta_min = np.array([-1.49409838, -2.88039275, -0.44337252,  0.16309625,  0.11204813, -0.55605511])*np.random.random((6,))*4
+theta_min = np.array([-2.14, -3.5, -0.44337252,  0.16309625,  0.11204813, -0.55605511, 0.15, 0.4])*np.random.random((8,))*4.
+
+
 def predict(sa):
     idx = kdt.query(sa.T, k=K, return_distance=False)
     X_nn = Xtrain[idx,:].reshape(K, state_action_dim)
@@ -94,7 +99,7 @@ def predict(sa):
     m = np.zeros(state_dim)
     s = np.zeros(state_dim)
     for i in range(0,state_dim):
-        gp_est = GaussianProcess(X_nn[:,:4], Y_nn[:,i], GaussianCovariance())
+        gp_est = GaussianProcess(X_nn[:,:4], Y_nn[:,i], GaussianCovariance(), theta_min=theta_min)
         m[i], s[i] = gp_est.estimate(sa[0][:4].reshape(1,-1))
     return m, s
 
@@ -119,7 +124,7 @@ def UP(sa_mean, sa_Sigma):
     m = np.empty(state_dim)
     s = np.empty(state_dim)
     for i in range(state_dim):
-        gp_est = GaussianProcess(X_nn, Y_nn[:,i], GaussianCovariance())
+        gp_est = GaussianProcess(X_nn, Y_nn[:,i], GaussianCovariance(), theta_min=theta_min)
         up = UncertaintyPropagationExact(gp_est)
         m[i], s[i] = up.propagate_GA(sa_mean.reshape((-1,)), sa_Sigma)
     return m, s
@@ -201,9 +206,15 @@ if 1:
 
 end = time.time()
 
-plt.figure(0)
+fig = plt.figure(0)
+ax = fig.add_subplot(111, aspect='equal')
 plt.plot(Xtest[:,0], Xtest[:,1], 'k-')
 plt.plot(Ypred_mean[:,0], Ypred_mean[:,1], 'r.-')
+for i in range(Ypred_std.shape[0]):
+    # print Ypred_std[i,:2]
+    ell = Ellipse(xy=(Ypred_mean[i,0], Ypred_mean[i,1]), width=Ypred_std[i,0]*2, height=Ypred_std[i,1]*2, angle=0.)
+    # ell.set_facecolor('none')
+    ax.add_artist(ell)
 # for i in range(Ypred.shape[0]-1):
 #     plt.plot(np.array([Xtest[i,0], Ypred[i,0]]), np.array([Xtest[i,1], Ypred[i,1]]), 'r.-')
 plt.axis('equal')
@@ -212,3 +223,4 @@ plt.grid(True)
 plt.show()
 
 print("Calc. time: " + str(end - start) + " sec.")
+
