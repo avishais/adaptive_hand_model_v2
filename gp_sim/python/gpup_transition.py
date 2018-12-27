@@ -5,7 +5,7 @@ sys.path.insert(0, './gpuppy/')
 
 import numpy as np
 from GaussianProcess import GaussianProcess
-from Covariance import GaussianCovariance
+from Covariance_original import GaussianCovariance
 from UncertaintyPropagation import UncertaintyPropagationApprox, UncertaintyPropagationExact, UncertaintyPropagationMC
 import matplotlib.pyplot as plt
 import pickle
@@ -23,16 +23,17 @@ useDiffusionMaps = False
 # Number of NN
 if useDiffusionMaps:
     K = 1000
-    df = DiffusionMap(sigma=1, embedding_dim=3, k=K)
+    K_manifold = 200
+    df = DiffusionMap(sigma=1, embedding_dim=2, k=K)
 else:
-    K = 500 
+    K = 200 
 K_up = 100
 
 print('Loading data...')
 if discrete:
     Q = loadmat('../../data/sim_data_discrete.mat')
     Qtrain = Q['D']
-    is_start = Q['is_start'][0][0]; is_end = Q['is_end'][0][0]-150
+    is_start = Q['is_start'][0][0]; is_end = Q['is_end'][0][0]#-150
 else:
     Q = loadmat('../../data/sim_data_cont.mat')
     Qtrain = Q['D']
@@ -130,7 +131,7 @@ def propagate(sa):
     return mu#s_next
 
 def reduction(sa, X, Y):
-    inx = df.ReducedClosestSetIndices(sa, X, k_manifold=100)
+    inx = df.ReducedClosestSetIndices(sa, X, k_manifold=K_manifold)
 
     return X[inx,:][0], Y[inx,:][0]
 
@@ -150,7 +151,7 @@ def get_global_theta():
 start = time.time()
 
 # GP propagation
-if 1:
+if 0:
     if (saved):
         print('Loading saved path...')
         # Getting back the objects:
@@ -178,7 +179,7 @@ if 1:
         #     pickle.dump([Xtest, Ypred], f)
 
 # GPUP propagation
-if 0:
+if 1:
     s = Xtest[0,:state_dim]
     m = np.array([0.**2, 0.**2, 0.**2, 0.**2])
     m_u = np.array([0.**2, 0.**2])
@@ -186,7 +187,7 @@ if 0:
     Ypred_std = np.sqrt(m).reshape(1,state_dim)
 
     print("Running (open loop) path...")
-    for i in range(25):#Xtest.shape[0]):
+    for i in range(Xtest.shape[0]):
         print("Step " + str(i) + " of " + str(Xtest.shape[0]))
         a = Xtest[i,state_dim:state_action_dim]
         sa = np.concatenate((s,a)).reshape(-1,1)

@@ -187,9 +187,9 @@ class Covariance(object):
 				return np.linalg.pinv(K) # Avishai
 			except:# ValueError: # Avishai - Removed the ValueError
 				#Inversion done right
-				print x
-				print theta
-				print K
+				# print x
+				# print theta
+				# print K
 				L = cholesky(K+np.eye(m)*1e-5)
 				L_inv = solve_triangular(L,np.eye(m),lower=True)
 				K_inv = dot(L_inv.T,L_inv)
@@ -345,7 +345,7 @@ class Covariance(object):
 
 		# print theta_start
 
-		from Utilities import minimize
+		# from Utilities import minimize
 		# try: # Avishai - Added due to errors with the toy example data
 		# theta_min = minimize(func,theta_start,bounds,constr,fprime = None, method=["l_bfgs_b"])#all, tnc, l_bfgs_b, cobyla, slsqp, bfgs, powell, cg, simplex or list of some of them
 		# except:
