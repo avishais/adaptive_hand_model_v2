@@ -45,7 +45,7 @@ class GaussianProcess(object):
 
 	def global_theta(self, x, t):
 
-		idx = np.random.choice(x.shape[0], 100, replace=False)
+		idx = np.random.choice(x.shape[0], 10000, replace=False)
 		X = x[idx,:]
 		T = t[idx]
 

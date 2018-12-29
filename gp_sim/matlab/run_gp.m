@@ -3,7 +3,7 @@ warning('off','all')
 
 px2mm = 1;
 
-GP = gp_class(1, 0, 0);
+GP = gp_class(1, 1, 0);
 
 Sr = GP.Xtest;
 I = GP.I;

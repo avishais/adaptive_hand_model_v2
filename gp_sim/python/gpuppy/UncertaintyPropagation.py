@@ -263,7 +263,7 @@ if not cython:
 			:return: covariance correction factor
 			"""
 			diff = u - xi
-			return  self.normalize_C_corr * np.exp(0.5 * (np.dot(diff.T, np.dot(self.Deltainv, diff))))
+			return  self.normalize_C_corr * np.exp(0.5 * (np.dot(diff.T, np.dot(self.Deltainv, diff)))) # (3.40)
 
 
 		def propagate_mean(self, u, Sigma_x,C_ux=None):
@@ -273,10 +273,10 @@ if not cython:
 			if C_ux is None:
 				C_ux = []
 				for i in range(N):
-					C_ux.append(self.gp._covariance(u,x[i]))
+					C_ux.append(self.gp._covariance(u,x[i])) 
 				C_ux = np.array(C_ux)
 
-			beta = self.gp._get_beta()
+			beta = self.gp._get_beta() # \beta= K^{-1}t
 			self.Winv = self.gp._get_W_inv()
 			self.Sigma_x = Sigma_x
 
@@ -335,9 +335,9 @@ if not cython:
 
 			C_ux = []
 			for i in range(N):
-				C_ux.append(self.gp._covariance(u,x[i]))
+				C_ux.append(self.gp._covariance(u,x[i])) # Stacks the covariance between u and all points in x
 			C_ux = np.array(C_ux)
-			mu = self.propagate_mean(u, Sigma_x,C_ux)
+			mu = self.propagate_mean(u, Sigma_x, C_ux)
 
 
 			if weaving:
@@ -380,9 +380,6 @@ if not cython:
 
 
 
-
-
-
 	class UncertaintyPropagationApprox(UncertaintyPropagationGA):
 		def __init__(self, gp):
 			"""
@@ -398,7 +395,7 @@ if not cython:
 			beta = self.gp._get_beta()
 			x = self.gp.x # Data
 			n = len(x) # Number of points in data
-			mu = sum([beta[i]*self.C_ux[i] for i in range(n)])
+			mu = sum([beta[i]*self.C_ux[i] for i in range(n)]) # Girard, Page 39
 			# print "Approx mean"
 			# print mu
 			#print 0.5 * sum([beta[i] * np.trace(np.dot(self.get_Hessian(u,x[i]),Sigma_x)) for i in range(n)])
@@ -425,9 +422,9 @@ if not cython:
 				"""
 				sum_ = weave.inline(code,['Kinv','C_ux','n'])
 			else:
-				sum_ = sum([Kinv[i][j]*C_ux[i]*C_ux[j] for i in range(n) for j in range(n)])
+				sum_ = sum([Kinv[i][j]*C_ux[i]*C_ux[j] for i in range(n) for j in range(n)]) # Girard, Pg. 40
 
-			sigma2 = self.gp._covariance(u,u) - sum_#
+			sigma2 = self.gp._covariance(u,u) - sum_
 
 
 			return sigma2
@@ -478,7 +475,7 @@ if not cython:
 				variance3 = - 0.5* sum([Kinv[i][j]*(C_ux[i]*trace[j]
 												+C_ux[j]*trace[i]) for i in range(n) for j in range(n)])
 
-			return variance2+variance3
+			return variance2+variance3 # Girard, Pg. 40
 
 		def _get_sigma2_and_variance_rest(self,u,Sigma_x,Kinv,x,beta):
 			n = len(x)
@@ -515,7 +512,8 @@ if not cython:
 
 
 
-			#TODO!!!: Only if C''(u,u) == 0
+			#TODO!!!: Only if C''(u,u) == 0 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+			# From (3.30), C(u,u) = v (Scale)
 			variance = sigma2 + variance_rest
 
 			# print("app", mean, variance, self.gp._get_mean_t())
@@ -605,7 +603,6 @@ if not cython:
 				variance2 = weave.inline(code,['Kinv','beta','J','n','h'])
 			else:
 				variance2 =	- sum([(Kinv[i][j]-beta[i]*beta[j]) * self.J_ux[i,h,0]*self.J_ux[j,h,0] for i in range(n) for j in range(n)])
-
 
 
 			C_ux = self.C_ux

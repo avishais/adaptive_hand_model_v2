@@ -71,6 +71,7 @@ class GPRegressor:
         for i in range(0,len(X[0,:])):
             l2=l[i]*l[i] #!
             d1=cdist(X[:,i].reshape(-1,1),X[:,i].reshape(-1,1),metric='sqeuclidean')
+            print d1
             d2=cdist(var_x[:,i].reshape(-1,1),-var_x[:,i].reshape(-1,1),metric='euclidean')
             tmp+=d1/(l2+d2)
             tmp2*=(1.0+d2/l2)  
@@ -86,7 +87,7 @@ class GPRegressor:
     #          and l[2::] is correlation length(s)
     #          None means using the supplied hyperparameters.
     def fit(self,X_train,y_train,var_x,var_y,l_bounds=None):
-        
+        optimize = False
         
         if self.normalize_y:
             self.mu=np.mean(y_train,0)
@@ -102,26 +103,37 @@ class GPRegressor:
         self.var_y=var_y
         
         #Fit hyperparameters by maximizing log marginal likelihood.
-        if l_bounds is not None:
-            bounds = []
-            for i in range(0,len(l_bounds)):
-                bounds.append(l_bounds[i])
-            best_f=1e6
-            for j in range(0,self.num_restarts):
-                loglb=np.log10(l_bounds[:,0])
-                loghb=np.log10(l_bounds[:,1])
-                l0=loglb+(loghb-loglb)*np.random.random(size=loglb.shape)
-                l0=10.0**l0   
-                
-                res=minimize(self.neg_log_marginal_likelihood,l0,method='l-bfgs-b',bounds=bounds,tol=1e-12,options={'disp':False,'eps':0.001})
-                if res['fun'] < best_f:
-                    self.varf=res['x'][0]
-                    self.alpha=res['x'][1]
-                    self.l=res['x'][2::]
-                    self.opt_params=res['x']
-                    best_f = res['fun']
-                print "iter: "+str(j) +". params: " + str(self.varf) + ", " + str(self.alpha) + ", " + str(self.l)
-            self.var_y+=self.alpha
+        if optimize:
+            if l_bounds is not None:
+                bounds = []
+                for i in range(0,len(l_bounds)):
+                    bounds.append(l_bounds[i])
+                best_f=1e6
+                for j in range(0,self.num_restarts):
+                    loglb=np.log10(l_bounds[:,0])
+                    loghb=np.log10(l_bounds[:,1])
+                    l0=loglb+(loghb-loglb)*np.random.random(size=loglb.shape)
+                    l0=10.0**l0  
+                    
+                    res=minimize(self.neg_log_marginal_likelihood,l0,method='l-bfgs-b',bounds=bounds,tol=1e-12,options={'disp':False,'eps':0.001})
+                    if res['fun'] < best_f:
+                        self.varf=res['x'][0]
+                        self.alpha=res['x'][1]
+                        self.l=res['x'][2::]
+                        self.opt_params=res['x']
+                        best_f = res['fun']
+                    print "iter: "+str(j) +". params: " + str(self.varf) + ", " + str(self.alpha) + ", " + str(self.l)
+                self.var_y+=self.alpha
+        else:
+            loglb=np.log10(l_bounds[:,0])
+            loghb=np.log10(l_bounds[:,1])
+            l0=loglb+(loghb-loglb)*np.random.random(size=loglb.shape)
+            l0=10.0**l0 
+            self.varf=l0[0]
+            self.alpha=l0[1]
+            self.l=l0[2::]
+
+
         #Calculate factors needed for prediction.
         self.K1=self.autokernel(self.X_train,self.var_x,self.l,self.varf)
         self.pred_fac = np.linalg.pinv(self.K1+ np.identity(len(self.K1[:,0]))*self.var_y)
@@ -180,7 +192,7 @@ print("Loading data to kd-tree...")
 Xtrain_nn = Xtrain# * W
 kdt = KDTree(Xtrain_nn, leaf_size=20, metric='euclidean')
 
-l_bounds = np.array([(1.0e-15,1e2) for i in range(state_dim+2) ])
+l_bounds = np.array([(1e-15,1e1) for i in range(state_dim+2) ])
 
 def predict(sa):
     idx = kdt.query(sa.T, k=K, return_distance=False)

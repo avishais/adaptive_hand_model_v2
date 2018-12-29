@@ -65,11 +65,11 @@ classdef gp_class < handle
                     obj.dr_dim = 3;
             end
             
-            obj.euclidean = false;
+            obj.euclidean = true;
             
             obj.k_ambiant = 1000;
             obj.k_manifold = 100;
-            obj.k_euclidean = 500;
+            obj.k_euclidean = 100;
             
             obj = obj.load_data();
             disp("Finished constructor")
@@ -94,6 +94,8 @@ classdef gp_class < handle
             obj.Xtest = D(is_start:is_end,:);
             obj.I.base_pos = [0 0];
             obj.I.theta = 0;
+            
+            obj.Xtraining = obj.Xtraining(randperm(size(obj.Xtraining,1), 300000),:);
             
             if obj.mode == 1
                 obj.I.action_inx = 5:6;

@@ -16,6 +16,7 @@ from scipy.io import loadmat
 import time
 from sklearn.preprocessing import StandardScaler
 
+np.random.seed(10)
 
 saved = False
 discrete = True
@@ -24,28 +25,23 @@ useDiffusionMaps = False
 # Number of NN
 if useDiffusionMaps:
     K = 1000
-    K_manifold = 100
-    df = DiffusionMap(sigma=1, embedding_dim=3, k=K)
+    K_manifold = 200
+    df = DiffusionMap(sigma=1, embedding_dim=2, k=K)
 else:
-    K = 100 
+    K = 200 
 K_up = 100
 
 print('Loading data...')
 if discrete:
-    if 1:
-        Q = loadmat('../../data/sim_data_discrete.mat')
-        Qtrain = Q['D']
-        is_start = Q['is_start'][0][0]; is_end = Q['is_end'][0][0]#-250
-    else:
-        Q = loadmat('../../data/Ce_20_5.mat') # Real data from blue hand
-        Qtrain = np.concatenate((Q['Xtest1'][0][0][0],Q['Xtraining']), axis=0)
-        is_start = 0; is_end = Q['Xtest1'][0][0][0].shape[0]-1700
+    Q = loadmat('../../data/sim_data_discrete.mat')
+    Qtrain = Q['D']
+    is_start = Q['is_start'][0][0]; is_end = Q['is_end'][0][0]#-250
 else:
     Q = loadmat('../../data/sim_data_cont.mat')
     Qtrain = Q['D']
     is_start = Q['is_start'][0][0]; is_end = Q['is_end'][0][0]-100
-scaler = StandardScaler()
-Qtrain = scaler.fit_transform(Qtrain)
+# scaler = StandardScaler()
+# Qtrain = scaler.fit_transform(Qtrain)
 # x_mean = scaler.mean_
 # x_std = scaler.scale_
 Qtest = Qtrain[is_start:is_end,:]
@@ -85,11 +81,12 @@ Ytest = Qtest[:,state_action_dim:]
 print("Loading data to kd-tree...")
 Xtrain_nn = Xtrain# * W
 kdt = KDTree(Xtrain_nn, leaf_size=20, metric='euclidean')
+# K = 200
+# K_many = 500
 
-# theta_min = np.array([-1.49409838, -2.88039275, -0.44337252,  0.16309625,  0.11204813, -0.55605511])*np.random.random((6,))*4
-# theta_min = np.array([-2.14, -3.5, -0.44337252,  0.16309625,  0.11204813, -0.55605511, 0.15, 0.4])*np.random.random((8,))*4.
 
-def predict(sa, Theta_min):
+
+def predict(sa, theta_min):
     idx = kdt.query(sa.T, k=K, return_distance=False)
     X_nn = Xtrain[idx,:].reshape(K, state_action_dim)
     Y_nn = Ytrain[idx,:].reshape(K, state_dim)
@@ -99,9 +96,8 @@ def predict(sa, Theta_min):
 
     m = np.zeros(state_dim)
     s = np.zeros(state_dim)
-
     for i in range(0,state_dim):
-        gp_est = GaussianProcess(X_nn[:,:4], Y_nn[:,i], GaussianCovariance(), theta_min=None)#Theta_min[i].reshape((-1,)))
+        gp_est = GaussianProcess(X_nn[:,:4], Y_nn[:,i], GaussianCovariance(), theta_min=None)
         m[i], s[i] = gp_est.estimate(sa[0][:4].reshape(1,-1))
     return m, s
 
@@ -126,7 +122,7 @@ def UP(sa_mean, sa_Sigma):
     m = np.empty(state_dim)
     s = np.empty(state_dim)
     for i in range(state_dim):
-        gp_est = GaussianProcess(X_nn, Y_nn[:,i], GaussianCovariance(), theta_min=None)
+        gp_est = GaussianProcess(X_nn, Y_nn[:,i], GaussianCovariance(), theta_min=theta_min)
         up = UncertaintyPropagationExact(gp_est)
         m[i], s[i] = up.propagate_GA(sa_mean.reshape((-1,)), sa_Sigma)
     return m, s
@@ -143,8 +139,6 @@ def reduction(sa, X, Y):
     return X[inx,:][0], Y[inx,:][0]
 
 def get_global_theta():
-    print "Performing global optimization..."
-
     Theta_min = []
     for i in range(0,state_dim):
         gp_est = GaussianProcess(Xtrain[:,:4], Ytrain[:,i], GaussianCovariance(), globalTheta=True)
@@ -153,81 +147,79 @@ def get_global_theta():
 
     return Theta_min
 
-###
+def RMS(X, Y):
+    d = 0
+    for i in range(X.shape[0]):
+        d += np.linalg.norm(X[i,:4]-Y[i,:4])**2
+    return np.sqrt(d/X.shape[0])
 
-Theta_min = None#get_global_theta()
-# print Theta_min
+
+###
 
 start = time.time()
 
-# GP propagation
-if 1:
-    print "Running GP."
-    if (saved):
-        print('Loading saved path...')
-        # Getting back the objects:
-        with open('saved_GPUP.pkl') as f:  
-            Xtest, Ypred = pickle.load(f)   
-    else:
-        s = Xtest[0,:state_dim]
-        Ypred_mean = s.reshape(1,state_dim)
-        Ypred_std = np.zeros((1,state_dim)).reshape(1,state_dim)
+for k in range(2):
 
-        print("Running (open loop) path...")
-        for i in range(Xtest.shape[0]):
-            print("Step " + str(i) + " of " + str(Xtest.shape[0]))
-            a = Xtest[i,state_dim:state_action_dim]
-            sa = np.concatenate((s,a)).reshape(-1,1)
-            s_next, std_next = predict(sa, Theta_min)
-            # s_next = propagate(sa)
-            print s_next
-            # print std_next
-            s = s_next
-            Ypred_mean = np.append(Ypred_mean, s_next.reshape(1,state_dim), axis=0)
-            Ypred_std = np.append(Ypred_std, std_next.reshape(1,state_dim), axis=0)
+    try:
+        # GP propagation
+        if 1:
+            s = Xtest[0,:state_dim]
+            Ypred_mean = s.reshape(1,state_dim)
+            Ypred_std = np.zeros((1,state_dim)).reshape(1,state_dim)
+            theta_min = np.random.random((1,6))*20-10
+            print theta_min
 
-        # with open('saved_GPUP.pkl', 'w') as f:  # Python 3: open(..., 'wb')
-        #     pickle.dump([Xtest, Ypred], f)
+            for i in range(4):#Xtest.shape[0]):
+                a = Xtest[i,state_dim:state_action_dim]
+                sa = np.concatenate((s,a)).reshape(-1,1)
+                s_next, std_next = predict(sa, theta_min=theta_min.reshape((-1,)))
+                # s_next = propagate(sa)
+                print s_next
+                s = s_next
+                Ypred_mean = np.append(Ypred_mean, s_next.reshape(1,state_dim), axis=0)
+                Ypred_std = np.append(Ypred_std, std_next.reshape(1,state_dim), axis=0)
 
-# GPUP propagation
-if 0:
-    print "Running GPUP."
-    s = Xtest[0,:state_dim]
-    m = np.array([0.**2, 0.**2, 0.**2, 0.**2])
-    m_u = np.array([0.**2, 0.**2])
-    Ypred_mean = s.reshape(1,state_dim)
-    Ypred_std = np.sqrt(m).reshape(1,state_dim)
+        # GPUP propagation
+        if 0:
+            s = Xtest[0,:state_dim]
+            m = np.array([0.**2, 0.**2, 0.**2, 0.**2])
+            m_u = np.array([0.**2, 0.**2])
+            Ypred_mean = s.reshape(1,state_dim)
+            Ypred_std = np.sqrt(m).reshape(1,state_dim)
 
-    print("Running (open loop) path...")
-    for i in range(Xtest.shape[0]):
-        print("Step " + str(i) + " of " + str(Xtest.shape[0]))
-        a = Xtest[i,state_dim:state_action_dim]
-        sa = np.concatenate((s,a)).reshape(-1,1)
-        m = np.diag(np.concatenate((m, m_u), axis=0))
-        s_next_mean, s_next_var = UP(sa, m)
-        print(s_next_mean, s_next_var)
-        s = np.copy(s_next_mean)
-        m = np.copy(s_next_var)
-        Ypred_mean = np.append(Ypred_mean, s.reshape(1,state_dim), axis=0)
-        Ypred_std = np.append(Ypred_std, np.sqrt(m).reshape(1,state_dim), axis=0)
+            for i in range(Xtest.shape[0]):
+                a = Xtest[i,state_dim:state_action_dim]
+                sa = np.concatenate((s,a)).reshape(-1,1)
+                m = np.diag(np.concatenate((m, m_u), axis=0))
+                s_next_mean, s_next_var = UP(sa, m)
+                s = np.copy(s_next_mean)
+                m = np.copy(s_next_var)
+                Ypred_mean = np.append(Ypred_mean, s.reshape(1,state_dim), axis=0)
+                Ypred_std = np.append(Ypred_std, np.sqrt(m).reshape(1,state_dim), axis=0)
+    except:
+        print("Error!!!")
+        # exit(1)
+        continue
+
+    S = 0#RMS(Xtest[:,:4], Ypred_mean)
+    print("Trial " + str(k) + " with error " + str(S))
+
+    F = open('brute.txt','a') 
+    for j in range(6):
+        F.write("%f "%theta_min[0][j])
+    F.write("%f\n"%S)
+    F.close()
+
+    fig = plt.figure(0)
+    plt.plot(Xtest[:,0], Xtest[:,1], 'k-')
+    plt.plot(Ypred_mean[:,0], Ypred_mean[:,1], 'r.-')
+    plt.axis('equal')
+    plt.title('GPUP')
+    plt.grid(True)
+    plt.show()
 
 end = time.time()
 
-fig = plt.figure(0)
-ax = fig.add_subplot(111, aspect='equal')
-plt.plot(Xtest[:,0], Xtest[:,1], 'k-')
-plt.plot(Ypred_mean[:,0], Ypred_mean[:,1], 'r.-')
-for i in range(Ypred_std.shape[0]):
-    # print Ypred_std[i,:2]
-    ell = Ellipse(xy=(Ypred_mean[i,0], Ypred_mean[i,1]), width=Ypred_std[i,0]*2, height=Ypred_std[i,1]*2, angle=0.)
-    # ell.set_facecolor('none')
-    ax.add_artist(ell)
-# for i in range(Ypred.shape[0]-1):
-#     plt.plot(np.array([Xtest[i,0], Ypred[i,0]]), np.array([Xtest[i,1], Ypred[i,1]]), 'r.-')
-plt.axis('equal')
-plt.title('GPUP')
-plt.grid(True)
-plt.show()
 
 print("Calc. time: " + str(end - start) + " sec.")
 

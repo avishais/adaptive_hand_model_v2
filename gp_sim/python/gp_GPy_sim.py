@@ -8,6 +8,8 @@ from scipy.io import loadmat
 import pickle
 import math
 from diffusionMaps import DiffusionMap
+from sklearn.preprocessing import StandardScaler
+
 
 saved = False
 discrete = True
@@ -24,6 +26,8 @@ print('Loading data...')
 if discrete:
     Q = loadmat('../../data/sim_data_discrete.mat')
     Qtrain = Q['D']
+    # scaler = StandardScaler()
+    # Qtrain = scaler.fit_transform(Qtrain)
     is_start = Q['is_start'][0][0]; is_end = Q['is_end'][0][0]#-100
     Qtest = Qtrain[is_start:is_end,:]
     Qtrain = np.concatenate((Qtrain[:is_start,:], Qtrain[is_end:,:]), axis=0)
@@ -46,25 +50,25 @@ Xtest = Qtest[:,0:state_action_dim]
 Ytest = Qtest[:,state_action_dim:]
 
 # Normalize
-x_max_X = np.max(Xtrain, axis=0)
-x_min_X = np.min(Xtrain, axis=0)
-x_max_Y = np.max(Ytrain, axis=0)
-x_min_Y = np.min(Ytrain, axis=0)
+# x_max_X = np.max(Xtrain, axis=0)
+# x_min_X = np.min(Xtrain, axis=0)
+# x_max_Y = np.max(Ytrain, axis=0)
+# x_min_Y = np.min(Ytrain, axis=0)
 
-for i in range(state_dim):
-    tmp = np.max([x_max_X[i], x_max_Y[i]])
-    x_max_X[i] = tmp
-    x_max_Y[i] = tmp
-    tmp = np.min([x_min_X[i], x_min_Y[i]])
-    x_min_X[i] = tmp
-    x_min_Y[i] = tmp
+# for i in range(state_dim):
+#     tmp = np.max([x_max_X[i], x_max_Y[i]])
+#     x_max_X[i] = tmp
+#     x_max_Y[i] = tmp
+#     tmp = np.min([x_min_X[i], x_min_Y[i]])
+#     x_min_X[i] = tmp
+#     x_min_Y[i] = tmp
 
-for i in range(Xtrain.shape[1]):
-    Xtrain[:,i] = (Xtrain[:,i]-x_min_X[i])/(x_max_X[i]-x_min_X[i])
-    Xtest[:,i] = (Xtest[:,i]-x_min_X[i])/(x_max_X[i]-x_min_X[i])
-for i in range(Ytrain.shape[1]):
-    Ytrain[:,i] = (Ytrain[:,i]-x_min_Y[i])/(x_max_Y[i]-x_min_Y[i])
-    Ytest[:,i] = (Ytest[:,i]-x_min_Y[i])/(x_max_Y[i]-x_min_Y[i])
+# for i in range(Xtrain.shape[1]):
+#     Xtrain[:,i] = (Xtrain[:,i]-x_min_X[i])/(x_max_X[i]-x_min_X[i])
+#     Xtest[:,i] = (Xtest[:,i]-x_min_X[i])/(x_max_X[i]-x_min_X[i])
+# for i in range(Ytrain.shape[1]):
+#     Ytrain[:,i] = (Ytrain[:,i]-x_min_Y[i])/(x_max_Y[i]-x_min_Y[i])
+#     Ytest[:,i] = (Ytest[:,i]-x_min_Y[i])/(x_max_Y[i]-x_min_Y[i])
 
 # W = np.concatenate( ( np.array([np.sqrt(1.), np.sqrt(1.)]).reshape(1,2), np.ones((1,state_dim)) ), axis=1 ).T
 # W = (np.array([5, 5, 3, 3, 1, 1, 3, 3]))
