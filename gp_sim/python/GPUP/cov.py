@@ -55,12 +55,13 @@ class Covariance(object):
     def Gcov(self,xi,xj):
         # Computes a scalar covariance of two samples
 
-		v, vt, w = self._get_theta()
+        v, vt, w = self._get_theta()
 
-		diff = xi - xj
+        diff = xi - xj
+        W = 1. / w
 
         #slighly dirty hack to determine whether i==j
-		return v * np.exp(-0.5 * (np.dot(diff.T, w* diff))) + (vt if (xi == xj).all() else 0)
+        return v * np.exp(-0.5 * (np.dot(diff.T, W* diff))) + (vt if (xi == xj).all() else 0)
 
     def cov_matrix(self):
         vt = self._get_vt()
@@ -81,14 +82,14 @@ class Covariance(object):
         else:
             v, vt, w = self._get_theta(theta)
         
-        # print "*", v, vt, w
+        W = 1. / w
 
         x1 = np.copy(Xi)
         x2 = np.copy(Xj)
         n1,_ = np.shape(x1)
         n2 = np.shape(x2)[0]
-        x1 = x1 * np.tile(np.sqrt(w),(n1,1))
-        x2 = x2 * np.tile(np.sqrt(w),(n2,1))
+        x1 = x1 * np.tile(np.sqrt(W),(n1,1))
+        x2 = x2 * np.tile(np.sqrt(W),(n2,1))
 
         K = -2*np.dot(x1,x2.T)
 
@@ -96,12 +97,6 @@ class Covariance(object):
         K += np.tile(np.atleast_2d(np.sum(x1*x1,1)).T,(1,n2))
 
         K = v*np.exp(-0.5*K) + vt*np.eye(K.shape[0])
-        # print K
-
-
-        # print K
-        # raw_input()
-        # exit(1)
 
         return K
 
@@ -116,12 +111,6 @@ class Covariance(object):
         # print "Optimized hyper-parameters with cost function " + str(res['fun']) + "."
         print "Theta is now " + str(self.theta)
 
-    # def _opt_func(self, x, t):
-
-    #     def nll(t):
-
-
-
     def neg_log_marginal_likelihood(self, theta):
         K = self.cov_matrix_ij(self.X, self.X, theta)
         
@@ -129,7 +118,6 @@ class Covariance(object):
             Kinv = inv(K)
         except:
             Kinv = np.linalg.inv(K)
-
 
         return 0.5*np.dot(self.Y.T, np.dot(Kinv, self.Y)) + 0.5*np.log(np.linalg.det(K)) + 0.5*self.N*np.log(2*np.pi)
 
