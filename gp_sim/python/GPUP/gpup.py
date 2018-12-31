@@ -9,7 +9,6 @@ Marc Peter Deisenroth PhD thesis: Efficient Reinforcement Learning using Gaussia
 
 '''
 
-
 import numpy as np
 from cov import Covariance
 
@@ -25,7 +24,7 @@ class UncertaintyPropagation(object):
 
         self.cov = Covariance(self.X, self.Y, theta = theta, optimize = optimize)
 
-        self.method = 1 # 1 - girard, 2 - Deisenroth
+        self.method = 1 # 1 - Girard, 2 - Deisenroth
 
     def predict(self, mu_x, sigma_x):
 

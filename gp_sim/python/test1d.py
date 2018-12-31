@@ -79,7 +79,6 @@ x = np.linspace(0, 6, 1000).reshape(-1,1)
 plt.plot(x,mlab.normpdf(x, mean, np.sqrt(Sigma)))
 plt.xlabel('x')
 
-
 ax2 = plt.subplot2grid((3, 5), (0, 0), colspan=1, rowspan=2)
 means_b, variances_b = gp_est.estimate_many(X_belief)
 Y_belief = np.array([np.random.normal(means_b[i], np.sqrt(variances_b[i])) for i in range(N)]).reshape(N,1) #
