@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import numpy as np
-from cov import Covariance
 from gp import GaussianProcess
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
@@ -24,12 +23,12 @@ if useDiffusionMaps:
     K_manifold = 100
     df = DiffusionMap(sigma=1, embedding_dim=2, k=K)
 else:
-    K = 1000
+    K = 100
 K_up = 100
 
 print('Loading data...')
 if discrete:
-    if 1:
+    if 0:
         Q = loadmat('../../../data/sim_data_discrete.mat')
         Qtrain = Q['D']
         is_start = Q['is_start'][0][0]; is_end = Q['is_end'][0][0]#-250
@@ -100,25 +99,24 @@ def reduction(sa, X, Y):
 # exit(1)
 
 # GP propagation
-if 1:
-    print "Running GP."
-   
-    s = Xtest[0,:state_dim]
-    Ypred_mean = s.reshape(1,state_dim)
-    Ypred_std = np.zeros((1,state_dim)).reshape(1,state_dim)
+print "Running GP."
 
-    print("Running (open loop) path...")
-    for i in range(0, Xtest.shape[0]-0*210):
-        print("Step " + str(i) + " of " + str(Xtest.shape[0]))
-        a = Xtest[i,state_dim:state_action_dim]
-        sa = np.concatenate((s,a)).reshape(-1,1)
-        s_next, std_next = predict(sa)
-        # s_next = propagate(sa)
-        print s_next
-        # print std_next
-        s = s_next
-        Ypred_mean = np.append(Ypred_mean, s_next.reshape(1,state_dim), axis=0)
-        Ypred_std = np.append(Ypred_std, std_next.reshape(1,state_dim), axis=0)
+s = Xtest[0,:state_dim]
+Ypred_mean = s.reshape(1,state_dim)
+Ypred_std = np.zeros((1,state_dim)).reshape(1,state_dim)
+
+print("Running (open loop) path...")
+for i in range(0, Xtest.shape[0]-0*210):
+    print("Step " + str(i) + " of " + str(Xtest.shape[0]))
+    a = Xtest[i,state_dim:state_action_dim]
+    sa = np.concatenate((s,a)).reshape(-1,1)
+    s_next, std_next = predict(sa)
+    # s_next = propagate(sa)
+    print s_next
+    # print std_next
+    s = s_next
+    Ypred_mean = np.append(Ypred_mean, s_next.reshape(1,state_dim), axis=0)
+    Ypred_std = np.append(Ypred_std, std_next.reshape(1,state_dim), axis=0)
 
 fig = plt.figure(0)
 ax = fig.add_subplot(111, aspect='equal')

@@ -178,8 +178,8 @@ class Covariance(object):
 			m=len(K)
 
 			try:
-				# return inv(K)
-				return np.linalg.pinv(K) # Avishai
+				return inv(K)
+				# return np.linalg.pinv(K) # Avishai
 			except:# ValueError: # Avishai - Removed the ValueError
 				#Inversion done right
 				L = cholesky(K+np.eye(m)*1e-5)
@@ -209,9 +209,12 @@ class Covariance(object):
 		logdetK = self._log_det_cov_matrix(x,theta)
 		invK = self.inv_cov_matrix(x,theta)
 
+		# exit(1)
+
 		try:
 				#print "t'*inv(K)*t ", dot(t.T, dot(invK, t))
 			nll = N / 2.0 * np.log(2 * np.pi) + 0.5 * logdetK + 0.5 * dot(t.T, dot(invK, t))
+			print nll[0][0]
 
 		except (np.linalg.linalg.LinAlgError, RuntimeWarning, ZeroDivisionError,ValueError):
 			nll = 1.0e+20
@@ -338,9 +341,10 @@ class Covariance(object):
 
 		from Utilities import minimize
 		# try: # Avishai - Added due to errors with the toy example data
-		theta_min = minimize(func,theta_start,bounds,constr,fprime = fprime, method=["l_bfgs_b"])#all, tnc, l_bfgs_b, cobyla, slsqp, bfgs, powell, cg, simplex or list of some of them
+		theta_min = minimize(func,theta_start,bounds,constr,fprime = None, method=["l_bfgs_b"])#all, tnc, l_bfgs_b, cobyla, slsqp, bfgs, powell, cg, simplex or list of some of them
 		# except:
 		# theta_min = theta_start
+		print "Theta is now " + str(theta_min)
 
 		# from scipy.optimize import minimize
 		# best_f=1e6

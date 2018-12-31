@@ -35,7 +35,7 @@ if discrete:
     else:
         Q = loadmat('../../../data/Ce_20_5.mat') # Real data from blue hand
         Qtrain = np.concatenate((Q['Xtest1'][0][0][0],Q['Xtraining']), axis=0)
-        is_start = 0; is_end = Q['Xtest1'][0][0][0].shape[0]-1700
+        is_start = 0; is_end = Q['Xtest1'][0][0][0].shape[0]-1890
 else:
     Q = loadmat('../../data/sim_data_cont.mat')
     Qtrain = Q['D']
