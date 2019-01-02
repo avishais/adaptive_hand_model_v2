@@ -47,7 +47,7 @@ else:
 # x_std = scaler.scale_
 Qtest = Qtrain[is_start:is_end,:]
 Qtrain = np.concatenate((Qtrain[:is_start,:], Qtrain[is_end:,:]), axis=0)
-Qtrain = Qtrain[np.random.choice(Qtrain.shape[0], 30000, replace=False),:]
+Qtrain = Qtrain[np.random.choice(Qtrain.shape[0], 300000, replace=False),:]
 print('Loaded training data of ' + str(Qtrain.shape[0]) + '.')
 
 state_action_dim = 6 
@@ -104,29 +104,6 @@ def predict(sa):
         else:
             gp_est = GaussianProcess(X_nn[:,:4], Y_nn[:,i], optimize = False, theta=theta)
         m[i], s[i] = gp_est.predict(sa[:4].reshape(1,-1)[0])
-
-    return m, s
-
-def batch_predict(SA):
-    sa = np.mean(SA, 0)
-    idx = kdt.query(sa.reshape(1,-1), k=K, return_distance=False)
-    X_nn = Xtrain[idx,:].reshape(K, state_action_dim)
-    Y_nn = Ytrain[idx,:].reshape(K, state_dim)
-
-    if useDiffusionMaps:
-        X_nn, Y_nn = reduction(sa, X_nn, Y_nn)
-
-    m = np.zeros((SA.shape[0], state_dim))
-    s = np.zeros((SA.shape[0], state_dim))
-    for i in range(state_dim):
-        if i == 0:
-            gp_est = GaussianProcess(X_nn[:,:4], Y_nn[:,i], optimize = True, theta=None)
-            theta = gp_est.cov.theta
-        else:
-            gp_est = GaussianProcess(X_nn[:,:4], Y_nn[:,i], optimize = False, theta=theta)
-        mm, ss = gp_est.batch_predict(SA[:,:4])
-        m[:,i] = mm
-        s[:,i] = np.diag(ss)
 
     return m, s
 

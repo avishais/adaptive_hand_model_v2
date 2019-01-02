@@ -11,7 +11,7 @@ from scipy.io import loadmat
 import time
 from sklearn.preprocessing import StandardScaler
 
-# np.random.seed(10)
+np.random.seed(10)
 
 saved = False
 discrete = True
@@ -106,7 +106,13 @@ def predict(sa, sigma2):
             gpup_est = UncertaintyPropagation(X_nn[:,:state_dim], Y_nn[:,i], optimize = False, theta=theta)
         m[i], s[i] = gpup_est.predict(sa[:state_dim].reshape(1,-1)[0], sigma2[:state_dim])
 
-    return m, s
+    # C = np.empty((state_dim,state_dim))
+    # for i in range(state_dim):
+    #     for j in range(state_dim):
+    #         g = np.cov(X_nn[:,i],Y_nn[:,j])
+    #         C[i,j] = g[1,0]
+
+    return m, s, #np.diag(np.diag(s) + 2*C)
 
 def reduction(sa, X, Y):
     inx = df.ReducedClosestSetIndices(sa, X, k_manifold=K_manifold)
@@ -123,7 +129,7 @@ Ypred_mean = s.reshape(1,state_dim)
 Ypred_std = sigma2_x.reshape(1,state_dim)
 
 print("Running (open loop) path...")
-for i in range(0, Xtest.shape[0]):
+for i in range(0, 100+0*Xtest.shape[0]):
     print("Step " + str(i) + " of " + str(Xtest.shape[0]))
     a = Xtest[i,state_dim:state_action_dim]
     sa = np.concatenate((s,a)).reshape(-1,1)
@@ -132,8 +138,7 @@ for i in range(0, Xtest.shape[0]):
     print "* ", sigma2_x, dsigma2_next
     s_next = s + ds_next
     sigma2_next = sigma2_x + dsigma2_next
-    print s_next
-    print sigma2_next
+    # print s_next, sigma2_next
     s = s_next
     sigma2_x = sigma2_next
     Ypred_mean = np.append(Ypred_mean, s_next.reshape(1,state_dim), axis=0)
