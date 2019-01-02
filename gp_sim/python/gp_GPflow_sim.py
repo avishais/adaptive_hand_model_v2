@@ -9,15 +9,14 @@ import pickle
 import math
 from diffusionMaps import DiffusionMap
 
-
 saved = False
 
-discrete = False
-useDiffusionMaps = False
+discrete = True
+useDiffusionMaps = True
 
 # Number of NN
 if useDiffusionMaps:
-    K = 1000
+    K = 5000
     df = DiffusionMap(sigma=1, embedding_dim=3, k=K)
 else:
     K = 100 
@@ -26,7 +25,7 @@ print('Loading data...')
 if discrete:
     Q = loadmat('../../data/sim_data_discrete.mat')
     Qtrain = Q['D']
-    is_start = Q['is_start'][0][0]; is_end = Q['is_end'][0][0]-100
+    is_start = Q['is_start'][0][0]; is_end = Q['is_end'][0][0]-180
     Qtest = Qtrain[is_start:is_end,:]
     Qtrain = np.concatenate((Qtrain[:is_start,:], Qtrain[is_end:,:]), axis=0)
 else:
@@ -68,13 +67,13 @@ for i in range(Ytrain.shape[1]):
     Ytrain[:,i] = (Ytrain[:,i]-x_min_Y[i])/(x_max_Y[i]-x_min_Y[i])
     Ytest[:,i] = (Ytest[:,i]-x_min_Y[i])/(x_max_Y[i]-x_min_Y[i])
 
-# W = np.concatenate( ( np.array([np.sqrt(1.), np.sqrt(1.)]).reshape(1,2), np.ones((1,state_dim)) ), axis=1 ).T
-# W = (np.array([5, 5, 3, 3, 1, 1, 3, 3]))
-# W = W.reshape((W.shape[0],))
+idx = np.random.choice(Qtrain.shape[0], int(5e5))
+Xtrain = Xtrain[idx, :]
+Ytrain = Ytrain[idx, :]
+print('Reduced to ' + str(Xtrain.shape[0]) + ' points.')
 
 print("Loading data to kd-tree...")
-Xtrain_nn = Xtrain# * W
-kdt = KDTree(Xtrain_nn, leaf_size=20, metric='euclidean')
+kdt = KDTree(Xtrain, leaf_size=50, metric='euclidean')
 
 ###
 
@@ -95,7 +94,7 @@ def predict(sa):
         m = gpflow.models.GPR(X_nn, Y_nn[:,dim].reshape(-1,1), kern=kernel)
 
         # Maximum Likelihood estimation of \theta
-        gpflow.train.ScipyOptimizer().minimize(m)
+        # gpflow.train.ScipyOptimizer().minimize(m)
 
         mu[dim], sigma[dim] = m.predict_y(sa.reshape(1,state_action_dim))
 
@@ -108,13 +107,13 @@ def propagate(sa):
     return mu#s_next
 
 def reduction(sa, X, Y):
-    inx = df.ReducedClosestSetIndices(sa, X, k_manifold=100)
+    inx = df.ReducedClosestSetIndices(sa, X, k_manifold=200)
 
     return X[inx,:][0], Y[inx,:][0]
 
 ###
 
-
+print('Predicting...')
 start = time.time()
 
 if (saved):
@@ -159,7 +158,7 @@ plt.plot(Ypred[:,0], Ypred[:,1], 'r.-')
 # for i in range(Ypred.shape[0]-1):
 #     plt.plot(np.array([Xtest[i,0], Ypred[i,0]]), np.array([Xtest[i,1], Ypred[i,1]]), 'r.-')
 plt.axis('equal')
-plt.title('GPy (gp_GPy.py)')
+plt.title('GPflow local')
 plt.grid(True)
 plt.show()
 

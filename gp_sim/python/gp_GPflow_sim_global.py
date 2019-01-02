@@ -26,7 +26,7 @@ else:
     Qtrain = np.concatenate((Qtrain[:is_start,:], Qtrain[is_end:,:]), axis=0)
     # Qtrain = Qtrain[np.random.choice(Qtrain.shape[0], 300000, replace=False),:]
 
-print('Loaded training data of ' + str(Qtrain.shape[0]) + '.')
+print('Loaded training data of ' + str(Qtrain.shape[0]) + 'points.')
 
 state_action_dim = 6 
 state_dim = 4
@@ -57,28 +57,34 @@ for i in range(Ytrain.shape[1]):
     Ytrain[:,i] = (Ytrain[:,i]-x_min_Y[i])/(x_max_Y[i]-x_min_Y[i])
     Ytest[:,i] = (Ytest[:,i]-x_min_Y[i])/(x_max_Y[i]-x_min_Y[i])
 
+idx = np.random.choice(Qtrain.shape[0], int(1e4))
+Xtrain = Xtrain[idx, :]
+Ytrain = Ytrain[idx, :]
+print('Reduced to ' + str(Xtrain.shape[0]) + ' points.')
+
 # Build model
+print('Building model...')
 models = []
 for dim in range(state_dim):
     kernel = gpflow.kernels.RBF(input_dim=state_action_dim, ARD=True)
     # kernel = gpflow.kernels.Matern52(1, lengthscales=0.3)
 
-    models.append( gpflow.models.GPR(Xtrain, Ytrain[:,dim].reshape(-1,1), kern=kernel) )
+    # models.append( gpflow.models.GPR(Xtrain, Ytrain[:,dim].reshape(-1,1), kern=kernel) )
+
+    # Sparse GPR
+    Z = np.random.rand(100, state_action_dim)
+    models.append( gpflow.models.SGPR(Xtrain, Ytrain[:,dim].reshape(-1,1), kernel, Z=Z) )
 
 # Optimize
 # Maximum Likelihood estimation of \theta
+print('Optimizing...')
 for model in models:
     gpflow.train.ScipyOptimizer().minimize(model)
 
-    
 
 ###
 
 def predict(sa):
-    idx = kdt.query(sa.T, k=K, return_distance=False) # Returns a list of indices sorted by ascending distance
-    X_nn = Xtrain[idx,:].reshape(K, state_action_dim)
-    Y_nn = Ytrain[idx,:].reshape(K, state_dim)
-
     mu = np.zeros(state_dim)
     sigma = np.zeros(state_dim)
 
@@ -100,7 +106,7 @@ def reduction(sa, X, Y):
 
 ###
 
-
+print('Predicting...')
 start = time.time()
 
 if (saved):
@@ -145,7 +151,7 @@ plt.plot(Ypred[:,0], Ypred[:,1], 'r.-')
 # for i in range(Ypred.shape[0]-1):
 #     plt.plot(np.array([Xtest[i,0], Ypred[i,0]]), np.array([Xtest[i,1], Ypred[i,1]]), 'r.-')
 plt.axis('equal')
-plt.title('GPy (gp_GPy.py)')
+plt.title('GPflow global')
 plt.grid(True)
 plt.show()
 
