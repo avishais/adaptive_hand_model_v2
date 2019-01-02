@@ -21,7 +21,7 @@ useDiffusionMaps = False
 if useDiffusionMaps:
     K = 1000
     K_manifold = 100
-    df = DiffusionMap(sigma=1, embedding_dim=2, k=K)
+    df = DiffusionMap(sigma=1, embedding_dim=3, k=K)
 else:
     K = 100
 K_up = 100
@@ -54,9 +54,9 @@ state_action_dim = 6
 state_dim = 4
 
 Xtrain = Qtrain[:,0:state_action_dim]
-Ytrain = Qtrain[:,state_action_dim:]
+Ytrain = Qtrain[:,state_action_dim:]# - Xtrain[:,:state_dim]
 Xtest = Qtest[:,0:state_action_dim]
-Ytest = Qtest[:,state_action_dim:]
+Ytest = Qtest[:,state_action_dim:]# - Xtest[:,:state_dim]
 
 # Normalize
 x_max_X = np.max(Xtrain, axis=0)
@@ -79,6 +79,9 @@ for i in range(Ytrain.shape[1]):
     Ytrain[:,i] = (Ytrain[:,i]-x_min_Y[i])/(x_max_Y[i]-x_min_Y[i])
     Ytest[:,i] = (Ytest[:,i]-x_min_Y[i])/(x_max_Y[i]-x_min_Y[i])
 
+Ytrain -= Xtrain[:,:state_dim]
+Ytest -= Xtest[:,:state_dim]
+
 print("Loading data to kd-tree...")
 Xtrain_nn = Xtrain# * W
 kdt = KDTree(Xtrain_nn, leaf_size=20, metric='euclidean')
@@ -94,10 +97,11 @@ def predict(sa, sigma2):
     m = np.zeros(state_dim)
     s = np.zeros(state_dim)
 
+    # theta = np.array([-14.51211564, -15.89841,      6.45748541,   6.69844826,   7.73985411, 7.52262768])
     for i in range(state_dim):
         if i == 0:
             gpup_est = UncertaintyPropagation(X_nn[:,:state_dim], Y_nn[:,i], optimize = False, theta=None)
-            theta = None#gpup_est.cov.theta
+            theta = gpup_est.cov.theta
         else:
             gpup_est = UncertaintyPropagation(X_nn[:,:state_dim], Y_nn[:,i], optimize = False, theta=theta)
         m[i], s[i] = gpup_est.predict(sa[:state_dim].reshape(1,-1)[0], sigma2[:state_dim])
@@ -109,24 +113,14 @@ def reduction(sa, X, Y):
 
     return X[inx,:][0], Y[inx,:][0]
 
-
-# Simple test
-# s = Xtest[0,:state_dim]
-# a = Xtest[0,state_dim:state_action_dim]
-# sa = np.concatenate((s,a)).reshape(-1,1)
-# s_next, std_next = predict(sa)
-# print s_next, std_next
-# print Ytest[0,:]
-# exit(1)
-
 # GPUP propagation
 print "Running GPUP."
 
 s = Xtest[0,:state_dim]
-sigma2_x = np.array([0.**2, 0.**2, 0.**2, 0.**2])+1e-3
+sigma2_x = np.array([0.**2, 0.**2, 0.**2, 0.**2])+1e-8
 sigma2_u = np.array([0.**2, 0.**2])
 Ypred_mean = s.reshape(1,state_dim)
-Ypred_std = np.zeros((1,state_dim)).reshape(1,state_dim)
+Ypred_std = sigma2_x.reshape(1,state_dim)
 
 print("Running (open loop) path...")
 for i in range(0, Xtest.shape[0]):
@@ -134,8 +128,10 @@ for i in range(0, Xtest.shape[0]):
     a = Xtest[i,state_dim:state_action_dim]
     sa = np.concatenate((s,a)).reshape(-1,1)
     sigma2 = np.concatenate((sigma2_x, sigma2_u), axis=0)
-    s_next, sigma2_next = predict(sa, sigma2)
-    # s_next = propagate(sa)
+    ds_next, dsigma2_next = predict(sa, sigma2)
+    print "* ", sigma2_x, dsigma2_next
+    s_next = s + ds_next
+    sigma2_next = sigma2_x + dsigma2_next
     print s_next
     print sigma2_next
     s = s_next
@@ -155,6 +151,6 @@ for i in range(Ypred_std.shape[0]):
 # for i in range(Ypred.shape[0]-1):
 #     plt.plot(np.array([Xtest[i,0], Ypred[i,0]]), np.array([Xtest[i,1], Ypred[i,1]]), 'r.-')
 plt.axis('equal')
-plt.title('GPUP')
+plt.title('GPUP_\Delta y')
 plt.grid(True)
 plt.show()

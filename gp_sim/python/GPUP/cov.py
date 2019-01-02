@@ -20,8 +20,10 @@ class Covariance(object):
             self.optimize()
         
         self.K = self.cov_matrix_ij(self.X, self.X)
+        # print self.K
         # self.K = self.cov_matrix()
         self.Kinv = inv(self.K)   
+
 
     def Set_Data(self, X, Y):
         self.X = X
@@ -74,7 +76,7 @@ class Covariance(object):
 
         return K + vt*np.eye(K.shape[0])
 
-    def cov_matrix_ij(self, Xi, Xj, theta = None): 
+    def cov_matrix_ij(self, Xi, Xj, theta = None, add_vt = True): 
         # This is more efficient as it computes by matrix multiplication
 
         if theta is None:
@@ -91,17 +93,17 @@ class Covariance(object):
         x1 = x1 * np.tile(np.sqrt(W),(n1,1))
         x2 = x2 * np.tile(np.sqrt(W),(n2,1))
 
-        K = -2*np.dot(x1,x2.T)
+        K = -2 * np.dot(x1, x2.T)
 
         K += np.tile(np.atleast_2d(np.sum(x2*x2,1)),(n1,1))
         K += np.tile(np.atleast_2d(np.sum(x1*x1,1)).T,(1,n2))
 
-        K = v*np.exp(-0.5*K) + vt*np.eye(K.shape[0])
+        K = v*np.exp(-0.5*K) + (vt*np.eye(K.shape[0]) if add_vt else 0)
 
         return K
 
     def optimize(self):
-        bounds = None#[(-20.,20.) for _ in range(self.d+2)]
+        bounds = [(-100.,20.) for _ in range(self.d+2)]
         # res = minimize(self.neg_log_marginal_likelihood, self.theta, method='l-bfgs-b', bounds=bounds,tol=1e-20, options={'disp':False,'eps':1e-10})
         # self.theta = res['x']
 

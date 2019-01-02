@@ -1,6 +1,7 @@
 
 import numpy as np
 from cov import Covariance
+import time
 
 
 class GaussianProcess(object):
@@ -17,7 +18,7 @@ class GaussianProcess(object):
     def predict(self, x):
 
         k = self.cov.Gcov(x, x)
-        # k_vector = self.cov.cov_matrix_ij(np.atleast_2d(x),self.X) # This produces bad results
+        # k_vector = self.cov.cov_matrix_ij(x.reshape(1,-1), self.X) - self.cov._get_vt() # Slower
 
         k_vector = np.empty((self.X.shape[0],1))
         for i in range(self.X.shape[0]):
@@ -33,13 +34,23 @@ class GaussianProcess(object):
         # mean = 0
         # s = 0
         # for i in range(len(beta)):
-        #     mean += beta[i] * K[0][i]
+        #     mean += beta[i] * k_vector[0][i]
         #     for j in range(len(beta)):
-        #         s += self.cov.Kinv[i,j] * K[0][i] * K[0][j]
+        #         s += self.cov.Kinv[i,j] * k_vector[0][i] * k_vector[0][j]
         # var = k - s
         # mean += self.Y_mean
 
-        return mean, var
+        return mean, np.sqrt(var)
+
+    def batch_predict(self, Xs):
+
+        Xs = np.array(Xs)
+        k = self.cov.cov_matrix_ij(Xs, Xs)
+        kv = self.cov.cov_matrix_ij(Xs, self.X, add_vt = False)
+        mean = np.dot(kv, np.dot(self.cov.Kinv, self.Y)) + self.Y_mean
+        variance = np.diag(np.diag(k)) - np.dot(kv, np.dot(self.cov.Kinv, kv.T))# + self.cov._get_vt() #code variance + aleatory variance
+
+        return mean, np.sqrt(variance)
 
 
 

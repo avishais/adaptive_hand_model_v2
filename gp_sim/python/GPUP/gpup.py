@@ -39,6 +39,8 @@ class UncertaintyPropagation(object):
         self.Winv = scipy.linalg.inv(self.W)
         self.Winv2 = scipy.linalg.inv(self.W/2)
         self.Sigma_x = np.diag(sigma_x)
+        if len(self.Sigma_x) == 1:
+            self.Sigma_x = [self.Sigma_x]
 
         if self.method == 1:
             # Girard Eq. 3.40, 3.41
@@ -46,19 +48,19 @@ class UncertaintyPropagation(object):
             self.DeltaInv = self.Winv - scipy.linalg.inv(self.W + self.Sigma_x) # Based on the Girard Thesis
             self.M = 1 / np.sqrt( np.linalg.det( np.eye(d) + np.dot(self.Winv, [self.Sigma_x]) ) )
             self.DeltaInv2 = 2*self.Winv - scipy.linalg.inv(0.5*self.W + self.Sigma_x) 
-            self.M2 = 1 / np.sqrt( np.linalg.det( np.dot(self.Winv2, [self.Sigma_x]) + np.eye(d) )  )
+            self.M2 = 1 / np.sqrt( np.linalg.det( np.dot(self.Winv2, self.Sigma_x) + np.eye(d) )  )
         if self.method == 2:
             # Deisenroth Eq. 2.34
             self.DeltaInv = scipy.linalg.inv(self.W + self.Sigma_x) 
             self.M = 1 / np.sqrt( np.linalg.det( np.dot([self.Sigma_x], self.Winv) + np.eye(d) ) ) 
-            self.DeltaInv2 = np.dot(np.dot(scipy.linalg.inv(self.Sigma_x + 0.5*self.W), [self.Sigma_x]), self.Winv)
+            self.DeltaInv2 = np.dot(np.dot(scipy.linalg.inv(self.Sigma_x + 0.5*self.W), self.Sigma_x), self.Winv)
             self.M2 = 1 / np.sqrt( np.linalg.det( 2*np.dot([self.Sigma_x], self.Winv) + np.eye(d) ) )
         if self.method == 3:
             # Candela Eq. 22
             self.DeltaInv = scipy.linalg.inv(self.W + self.Sigma_x) 
-            self.M = 1 / np.sqrt( np.linalg.det( np.dot(self.Winv, [self.Sigma_x]) + np.eye(d) ) )
-            self.DeltaInv2 = np.dot(np.dot(self.Winv, scipy.linalg.inv(2*self.Winv + scipy.linalg.inv([self.Sigma_x]))), self.Winv)
-            self.M2 = 1 / np.sqrt( np.linalg.det( 2*np.dot(self.Winv, [self.Sigma_x]) + np.eye(d) ) )
+            self.M = 1 / np.sqrt( np.linalg.det( np.dot(self.Winv, self.Sigma_x) + np.eye(d) ) )
+            self.DeltaInv2 = np.dot(np.dot(self.Winv, scipy.linalg.inv(2*self.Winv + scipy.linalg.inv(self.Sigma_x))), self.Winv)
+            self.M2 = 1 / np.sqrt( np.linalg.det( 2*np.dot(self.Winv, self.Sigma_x) + np.eye(d) ) )
         
         mean = self.predict_mean(mu_x)
         variance = self.predict_variance(mu_x, mean)

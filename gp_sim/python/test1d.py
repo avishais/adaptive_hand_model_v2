@@ -12,7 +12,7 @@ def func(x, v = 0.3):
     return x*np.sin(x)+np.random.normal(0, v)
     # return 3*x+4+np.random.normal(0, 0.01)
 
-ax1 = plt.subplot2grid((3, 5), (0, 2), colspan=3, rowspan=2)
+# ax1 = plt.subplot2grid((3, 5), (0, 2), colspan=3, rowspan=2)
 
 # x_data = np.linspace(0, 4, 5).reshape(-1,1)
 x_data = np.random.uniform(0, 4, 7).reshape(-1,1)
@@ -32,7 +32,7 @@ plt.plot(x_n, m, '*r')
 
 # print(m,s)
 
-x_new = np.linspace(0, 6, 100).reshape(-1,1)
+x_new = np.linspace(0, 6, 120).reshape(-1,1)
 means, variances = gp_est.estimate_many(x_new)
 # print(means)
 
@@ -53,8 +53,8 @@ plt.plot(x_new, means,'-r')
 plt.fill_between(x_new.reshape(1,-1)[0], msl, msu)
 
 # print msu
-# plt.show()
-# exit(1)
+plt.show()
+exit(1)
 
 print "----------------------------------------------"
 
