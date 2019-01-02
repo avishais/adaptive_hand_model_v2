@@ -26,6 +26,7 @@ classdef gp_class < handle
         k_euclidean
         plotData
         passed_path
+        A
         %         predictServer
     end
     
@@ -82,7 +83,8 @@ classdef gp_class < handle
             disp('Loading data...');
             
             if obj.IsDiscrete
-                Q = load('../../data/sim_data_discrete.mat');
+%                 Q = load('../../data/sim_data_discrete.mat');
+                Q = load('../../data/real_data_discrete.mat');
             else
                 Q = load('../../data/sim_data_cont.mat');
             end
@@ -101,10 +103,8 @@ classdef gp_class < handle
                 obj.I.action_inx = 5:6;
                 obj.I.state_inx = 1:4;
                 obj.I.state_nxt_inx = 7:10;
-                %                 obj.I.action_inx = 3:4;
-                %                 obj.I.state_inx = 1:2;
-                %                 obj.I.state_nxt_inx = 5:6;
                 obj.I.state_dim = length(obj.I.state_inx);
+                obj.A = unique(obj.Xtraining(:, obj.I.action_inx), 'rows');
             end
             if obj.mode == 2
                 obj.Xtraining = obj.Xtraining(:, [1 2 5 6 7 8]);
