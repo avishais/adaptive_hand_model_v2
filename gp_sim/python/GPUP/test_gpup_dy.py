@@ -100,7 +100,7 @@ def predict(sa, sigma2):
     # theta = np.array([-14.51211564, -15.89841,      6.45748541,   6.69844826,   7.73985411, 7.52262768])
     for i in range(state_dim):
         if i == 0:
-            gpup_est = UncertaintyPropagation(X_nn[:,:state_dim], Y_nn[:,i], optimize = False, theta=None)
+            gpup_est = UncertaintyPropagation(X_nn[:,:state_dim], Y_nn[:,i], optimize = True, theta=None)
             theta = gpup_est.cov.theta
         else:
             gpup_est = UncertaintyPropagation(X_nn[:,:state_dim], Y_nn[:,i], optimize = False, theta=theta)
@@ -122,6 +122,8 @@ def reduction(sa, X, Y):
 # GPUP propagation
 print "Running GPUP."
 
+st = time.time()
+
 s = Xtest[0,:state_dim]
 sigma2_x = np.array([0.**2, 0.**2, 0.**2, 0.**2])+1e-8
 sigma2_u = np.array([0.**2, 0.**2])
@@ -129,7 +131,7 @@ Ypred_mean = s.reshape(1,state_dim)
 Ypred_std = sigma2_x.reshape(1,state_dim)
 
 print("Running (open loop) path...")
-for i in range(0, 100+0*Xtest.shape[0]):
+for i in range(0, Xtest.shape[0]):
     print("Step " + str(i) + " of " + str(Xtest.shape[0]))
     a = Xtest[i,state_dim:state_action_dim]
     sa = np.concatenate((s,a)).reshape(-1,1)
@@ -143,6 +145,8 @@ for i in range(0, 100+0*Xtest.shape[0]):
     sigma2_x = sigma2_next
     Ypred_mean = np.append(Ypred_mean, s_next.reshape(1,state_dim), axis=0)
     Ypred_std = np.append(Ypred_std, np.sqrt(sigma2_next).reshape(1,state_dim), axis=0)
+
+print("Computation time: " + str(time.time()-st) + " sec.")
 
 fig = plt.figure(0)
 ax = fig.add_subplot(111, aspect='equal')

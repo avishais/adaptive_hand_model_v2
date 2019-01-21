@@ -15,13 +15,13 @@ np.random.seed(10)
 
 saved = False
 discrete = True
-useDiffusionMaps = False
+useDiffusionMaps = True
 
 # Number of NN
 if useDiffusionMaps:
     K = 1000
     K_manifold = 100
-    df = DiffusionMap(sigma=1, embedding_dim=3, k=K)
+    df = DiffusionMap(sigma=1, embedding_dim=2, k=K)
 else:
     K = 100
 K_up = 100
@@ -47,7 +47,7 @@ else:
 # x_std = scaler.scale_
 Qtest = Qtrain[is_start:is_end,:]
 Qtrain = np.concatenate((Qtrain[:is_start,:], Qtrain[is_end:,:]), axis=0)
-Qtrain = Qtrain[np.random.choice(Qtrain.shape[0], 300000, replace=False),:]
+Qtrain = Qtrain[np.random.choice(Qtrain.shape[0], 500000, replace=False),:]
 print('Loaded training data of ' + str(Qtrain.shape[0]) + '.')
 
 state_action_dim = 6 

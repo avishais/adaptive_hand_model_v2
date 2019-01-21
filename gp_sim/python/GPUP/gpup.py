@@ -16,6 +16,7 @@ Candela, Girartd, ...: Propagation of uncertainty in Bayesian kernel models - ap
 import numpy as np
 from cov import Covariance
 import scipy
+import time
 
 
 class UncertaintyPropagation(object):
@@ -29,6 +30,8 @@ class UncertaintyPropagation(object):
         self.cov = Covariance(self.X, self.Y, theta = theta, optimize = optimize)
 
         self.method = method # 1 - Girard, 2 - Deisenroth, 3 - Candela
+
+        self.T = np.zeros(10)
 
     def predict(self, mu_x, sigma_x):
 
@@ -44,7 +47,6 @@ class UncertaintyPropagation(object):
 
         if self.method == 1:
             # Girard Eq. 3.40, 3.41
-            # self.DeltaInv = self.W - np.dot(self.W, scipy.linalg.inv(1 + np.dot(self.W, [self.Sigma_x]))) # Based on the gpuppy implementation
             self.DeltaInv = self.Winv - scipy.linalg.inv(self.W + self.Sigma_x) # Based on the Girard Thesis
             self.M = 1 / np.sqrt( np.linalg.det( np.eye(d) + np.dot(self.Winv, [self.Sigma_x]) ) )
             self.DeltaInv2 = 2*self.Winv - scipy.linalg.inv(0.5*self.W + self.Sigma_x) 
@@ -64,6 +66,8 @@ class UncertaintyPropagation(object):
         
         mean = self.predict_mean(mu_x)
         variance = self.predict_variance(mu_x, mean)
+
+        print self.T[:4]
 
         return mean, variance
 
@@ -155,28 +159,41 @@ class UncertaintyPropagation(object):
 
         if self.method == 3:
             # Candela Eq. 24
+
+            k_vector = np.diag(self.cov.cov_matrix_ij(np.tile(mu_x.reshape(1,-1), (self.X.shape[0],1)), self.X, add_vt=False))
+            
             L = np.empty((self.cov.N, self.cov.N))
             for i in range(self.cov.N):
                 for j in range(self.cov.N):
+                    st = time.time()
                     x_ = (self.X[i,:] + self.X[j,:]) / 2.
+                    self.T[0] += time.time() - st   
 
-                    ki = self.cov.Gcov(mu_x, self.X[i,:])
-                    kj = self.cov.Gcov(mu_x, self.X[j,:])
+                    st = time.time()
+                    ki = k_vector[i]#self.cov.Gcov(mu_x, self.X[i,:])
+                    kj = k_vector[j]#self.cov.Gcov(mu_x, self.X[j,:])
+                    self.T[1] += time.time() - st 
+
+                    st = time.time()
                     C_corr_2 = self._C_corr_2(mu_x, x_)
+                    self.T[2] += time.time() - st
 
+                    st = time.time()
                     L[i,j] = ki * kj * C_corr_2
-
-            k_vector = np.empty((self.X.shape[0],1))
-            for i in range(self.X.shape[0]):
-                k_vector[i] = self.cov.Gcov(mu_x, self.X[i,:])
-
+                    self.T[3] += time.time() - st
+            
+            # k_vector = np.empty((self.X.shape[0],1))
+            # for i in range(self.X.shape[0]):
+            #     k_vector[i] = self.cov.Gcov(mu_x, self.X[i,:])
+                       
             kk = np.dot(k_vector.reshape(-1,1), k_vector.reshape(1,-1))
             L = L - kk
             bb = np.dot(self.beta.reshape(-1,1), self.beta.reshape(1,-1))
             ll = np.dot(self.q.reshape(-1,1), self.q.reshape(1,-1))
             sigma2_GP = self.cov.Gcov(mu_x, mu_x) - np.dot( k_vector.reshape(1,-1), np.dot(self.cov.Kinv, k_vector.reshape(-1,1) ) ) # Candela Eq. 3 = self.cov.Gcov(mu_x, mu_x)?
-
+            
             var = sigma2_GP + np.trace( np.dot(L, bb - self.cov.Kinv) ) + np.trace( np.dot( kk - ll, bb ) )
+            
 
         return var
 

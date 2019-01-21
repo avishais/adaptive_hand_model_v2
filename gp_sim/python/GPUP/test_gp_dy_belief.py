@@ -35,15 +35,15 @@ if discrete:
         Qtrain = Q['D']
         is_start = Q['is_start'][0][0]; is_end = Q['is_end'][0][0]#-250
     else:
-        # Q = loadmat('../../../data/Ce_20_5.mat') # Real data from blue hand
-        # Qtrain = np.concatenate((Q['Xtest1'][0][0][0],Q['Xtraining']), axis=0)
-        # is_start = 0; is_end = Q['Xtest1'][0][0][0].shape[0]-1700
-        Q = loadmat('../../../data/real_data_discrete.mat') # Real data from blue hand
-        Qtest = np.array([33.4020000000000,-325.930000000000,52,-198])
-        A = np.concatenate( (np.array([[-0.2, 0.2] for _ in range(150)]), np.array([[-0.2, -0.2] for _ in range(150)]), np.array([[0.2, -0.2] for _ in range(150)]), np.array([[0.2, 0.2] for _ in range(150)]) ), axis=0 )
-        Qtest = np.concatenate( (np.tile(Qtest, (600,1)), A, np.zeros((600,4)) ), axis=1)
-        Qtrain = np.concatenate((Qtest,Q['D']), axis=0)
-        is_start = 0; is_end = 600       
+        Q = loadmat('../../../data/Ce_20_5.mat') # Real data from blue hand
+        Qtrain = np.concatenate((Q['Xtest1'][0][0][0],Q['Xtraining']), axis=0)
+        is_start = 0; is_end = Q['Xtest1'][0][0][0].shape[0]
+        # Q = loadmat('../../../data/real_data_discrete.mat') # Real data from blue hand
+        # Qtest = np.array([33.4020000000000,-325.930000000000,52,-198])
+        # A = np.concatenate( (np.array([[-0.2, 0.2] for _ in range(150)]), np.array([[-0.2, -0.2] for _ in range(150)]), np.array([[0.2, -0.2] for _ in range(150)]), np.array([[0.2, 0.2] for _ in range(150)]) ), axis=0 )
+        # Qtest = np.concatenate( (np.tile(Qtest, (600,1)), A, np.zeros((600,4)) ), axis=1)
+        # Qtrain = np.concatenate((Qtest,Q['D']), axis=0)
+        # is_start = 0; is_end = 600       
 else:
     Q = loadmat('../../data/sim_data_cont.mat')
     Qtrain = Q['D']
@@ -92,7 +92,8 @@ Ytest -= Xtest[:,:state_dim]
 
 print("Loading data to kd-tree...")
 Xtrain_nn = Xtrain# * W
-kdt = KDTree(Xtrain_nn, leaf_size=20, metric='euclidean')
+kdt = KDTree(Xtrain_nn, leaf_size=100, metric='euclidean')
+print("kd-tree loaded")
 
 # Particles prediction
 def batch_predict(SA):
@@ -108,7 +109,7 @@ def batch_predict(SA):
     s = np.zeros((SA.shape[0], state_dim))
     for i in range(state_dim):
         if i == 0:
-            gp_est = GaussianProcess(X_nn[:,:4], Y_nn[:,i], optimize = True, theta=None)
+            gp_est = GaussianProcess(X_nn[:,:4], Y_nn[:,i], optimize = False, theta=None)
             theta = gp_est.cov.theta
         else:
             gp_est = GaussianProcess(X_nn[:,:4], Y_nn[:,i], optimize = False, theta=theta)
@@ -131,7 +132,7 @@ def predict(sa, sigma2):
     s = np.zeros(state_dim)
     for i in range(state_dim):
         if i == 0:
-            gpup_est = UncertaintyPropagation(X_nn[:,:state_dim], Y_nn[:,i], optimize = True, theta=None)
+            gpup_est = UncertaintyPropagation(X_nn[:,:state_dim], Y_nn[:,i], optimize = False, theta=None)
             theta = gpup_est.cov.theta
         else:
             gpup_est = UncertaintyPropagation(X_nn[:,:state_dim], Y_nn[:,i], optimize = False, theta=theta)
@@ -150,9 +151,9 @@ def reduction(sa, X, Y):
 
     return X[inx,:][0], Y[inx,:][0]
 
-st = time.time()
 
-if 0:
+
+if 1:
     ##########################################################################################################
 
     s_start = Xtest[0,:state_dim]
@@ -167,10 +168,12 @@ if 0:
     Ypred_mean_gp = s.reshape(1,state_dim)
     Ypred_std_gp = np.zeros((1,state_dim)).reshape(1,state_dim)
 
+    st = time.time()
+
     # ims = []
     Pgp = []; 
     print("Running (open loop) path...")
-    for i in range(0, Xtest.shape[0]):
+    for i in range(0, 100+0*Xtest.shape[0]):
         print("Step " + str(i) + " of " + str(Xtest.shape[0]))
         Pgp.append(S)
         a = Xtest[i,state_dim:state_action_dim]
@@ -185,6 +188,8 @@ if 0:
         Ypred_mean_gp = np.append(Ypred_mean_gp, s_mean_next.reshape(1,state_dim), axis=0)
         Ypred_std_gp = np.append(Ypred_std_gp, s_std_next.reshape(1,state_dim), axis=0)
 
+    tgp = time.time() - st
+
     ######################################## GPUP propagation ###############################################
 
     print "Running GPUP."
@@ -194,8 +199,10 @@ if 0:
     Ypred_mean_gpup = s.reshape(1,state_dim)
     Ypred_std_gpup = sigma2_x.reshape(1,state_dim)
 
+    st = time.time()
+
     print("Running (open loop) path...")
-    for i in range(0, Xtest.shape[0]):
+    for i in range(0, 100+0*Xtest.shape[0]):
         print("Step " + str(i) + " of " + str(Xtest.shape[0]))
         a = Xtest[i,state_dim:state_action_dim]
         sa = np.concatenate((s,a)).reshape(-1,1)
@@ -208,21 +215,26 @@ if 0:
         Ypred_mean_gpup = np.append(Ypred_mean_gpup, s_next.reshape(1,state_dim), axis=0)
         Ypred_std_gpup = np.append(Ypred_std_gpup, np.sqrt(sigma2_next).reshape(1,state_dim), axis=0)
 
+    tgpup = time.time() - st
+
     ######################################## Save ###########################################################
 
-    print("Computation time: " + str(time.time()-st) + " sec.")
+    print("Computation time: (" + str(tgp) + ", " + str(tgpup) + ") sec.")
 
-    with open('belief2.pkl', 'w') as f:  # Python 3: open(..., 'wb')
+    with open('belief_real.pkl', 'w') as f:  # Python 3: open(..., 'wb')
             pickle.dump([Xtest, Ypred_mean_gp, Ypred_std_gp, Ypred_mean_gpup, Ypred_std_gpup, Pgp], f)
 
 ######################################## Plot ###########################################################
 
-with open('belief2.pkl') as f:  
+# exit(1)
+
+with open('belief_real.pkl') as f:  
     Xtest, Ypred_mean_gp, Ypred_std_gp, Ypred_mean_gpup, Ypred_std_gpup, Pgp = pickle.load(f)  
 
 fig = plt.figure(0)
 ax = fig.add_subplot(111)#, aspect='equal')
 ax.plot(Xtest[:,0], Xtest[:,1], 'b-')
+p, = ax.plot([],[], 'pk', markerfacecolor='y', markersize=8)
 
 prtc_mean_line, = ax.plot([], [], '-r')
 prtc, = ax.plot([], [], '.k')
@@ -234,18 +246,21 @@ patch = Ellipse(xy=(Ypred_mean_gpup[0,0], Ypred_mean_gpup[0,1]), width=Ypred_std
 ax.add_patch(patch)
 patch_mean, = ax.plot([], [], '--m')
 
-plt.xlim(0.4, 0.65)
-plt.ylim(0.35, 0.45)
+# plt.xlim(0.4, 0.65)
+# plt.ylim(0.35, 0.45)
 
 def init():
+    p.set_data([],[])
     prtc.set_data([], [])
     prtc_mean.set_data([], [])
     prtc_mean_line.set_data([], [])
     patch_mean.set_data([], [])
 
-    return prtc, prtc_mean, prtc_mean_line, patch_prtc, patch, patch_mean,
+    return p, prtc, prtc_mean, prtc_mean_line, patch_prtc, patch, patch_mean,
 
 def animate(i):
+
+    p.set_data(Xtest[i,0], Xtest[i,1])
 
     S = Pgp[i]
     prtc.set_data(S[:,0], S[:,1])
@@ -260,9 +275,9 @@ def animate(i):
     patch.height = Ypred_std_gpup[i,1]*2
     patch_mean.set_data(Ypred_mean_gpup[:i,0], Ypred_mean_gpup[:i,1])
 
-    return prtc, prtc_mean, prtc_mean_line, patch_prtc, patch, patch_mean,
+    return p, prtc, prtc_mean, prtc_mean_line, patch_prtc, patch, patch_mean,
 
 ani = animation.FuncAnimation(fig, animate, frames=len(Pgp), init_func=init, interval=20, repeat_delay=3000, blit=True)
-ani.save('belief2.mp4', metadata={'artist':'Avishai Sintov','year':'2019'})
+# ani.save('belief_real.mp4', metadata={'artist':'Avishai Sintov','year':'2019'}, bitrate=-1, codec="libx264")
 
 plt.show()

@@ -68,7 +68,7 @@ class Covariance(object):
     def cov_matrix(self):
         vt = self._get_vt()
 
-        # Computes each component indivisually
+        # Computes each component individually
         K = np.zeros((self.N,self.N))
         for i in range(self.N):
             for j in range(self.N):
