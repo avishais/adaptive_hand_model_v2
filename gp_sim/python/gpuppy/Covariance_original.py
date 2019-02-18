@@ -214,7 +214,7 @@ class Covariance(object):
 		try:
 				#print "t'*inv(K)*t ", dot(t.T, dot(invK, t))
 			nll = N / 2.0 * np.log(2 * np.pi) + 0.5 * logdetK + 0.5 * dot(t.T, dot(invK, t))
-			print nll[0][0]
+			# print nll[0][0]
 
 		except (np.linalg.linalg.LinAlgError, RuntimeWarning, ZeroDivisionError,ValueError):
 			nll = 1.0e+20

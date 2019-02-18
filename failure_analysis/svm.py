@@ -6,6 +6,8 @@ from sklearn.neighbors import KDTree #pip install -U scikit-learn
 from sklearn import svm
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
+from scipy.io import loadmat
+
 
 take_test_data = False
 gen_new_data = False
@@ -25,10 +27,11 @@ class SVM_failure():
     def load_data(self, gen=True):
 
         # path = '/home/pracsys/catkin_ws/src/rutgers_collab/src/sim_transition_model/data/'
-        path = '../data/'
+        # path = '../data/'
+        path = '/home/pracsys/catkin_ws/src/beliefspaceplanning/gpup_gp_node/data/'
 
         if gen:
-            file_name = path + 'transition_data_' + self.mode + '.obj'
+            file_name = path + 'transition_data_' + self.mode + '_v3.obj'
             print('Loading data from ' + file_name)
             with open(file_name, 'rb') as filehandler:
                 self.memory = pickle.load(filehandler)
@@ -38,23 +41,27 @@ class SVM_failure():
             self.actions = np.array([item[1] for item in self.memory])
             self.done = np.array([item[3] for item in self.memory])
 
+            if file_name == path + 'transition_data_' + self.mode + '_v3.obj':
+                self.states = self.states[:,:4] # for transition_data_discrete_v3 data set (contains velocity)
+
             # Process data
             self.SA = np.concatenate((self.states, self.actions), axis=1)
 
             # Sparser
             T = np.where(self.done)[0]
             inx_fail = T
+            print T.shape
             T = np.where(np.logical_not(self.done))[0]
-            inx_suc = T[np.random.choice(T.shape[0], 30000, replace=False)]
+            inx_suc = T[np.random.choice(T.shape[0], 500, replace=False)]
             self.SA = np.concatenate((self.SA[inx_fail], self.SA[inx_suc]), axis=0)
             self.done = np.concatenate((self.done[inx_fail], self.done[inx_suc]), axis=0)
 
-            with open(path + 'svm_data_' + self.mode + '.obj', 'wb') as f: 
+            with open(path + 'svm_data_' + self.mode + '_v3.obj', 'wb') as f: 
                 pickle.dump([self.SA, self.done], f)
             print('Saved svm data.')
         else:
-            print('Loading data from ' + 'svm_data_' + self.mode + '.obj')
-            with open(path + 'svm_data_' + self.mode + '.obj', 'rb') as f: 
+            print('Loading data from ' + 'svm_data_discrete_v5_d6_m10.obj')# 'svm_data_' + self.mode + '.obj')
+            with open(path + 'svm_data_discrete_v5_d6_m10.obj', 'rb') as f: #svm_data_' + self.mode + '_v3.obj'
                 self.SA, self.done = pickle.load(f)
             print('Loaded svm data.')
             
@@ -100,7 +107,7 @@ if __name__ == '__main__':
     
     K = SVM_failure(True)
 
-    if 0:
+    if take_test_data:
 
         if take_test_data:
             SA_test = K.SA_test
@@ -125,30 +132,36 @@ if __name__ == '__main__':
 
     else:
 
-        s_max = np.array([93.31538391, 143.04187012,  66.03091431,  79.83042908])
-        s_min = np.array([-87.74127197,  -5.84844971,   2.18996787,   0.47996914])
-        
-        N = 100
-        sx = np.linspace(s_min[0], s_max[0], N)
-        sy = np.linspace(s_min[1], s_max[1], N)
-        Sx, Sy = np.meshgrid(sx, sy)
+        Q = loadmat('/home/pracsys/catkin_ws/src/beliefspaceplanning/gpup_gp_node/data/sim_data_discrete_v5_d6_m10.mat')
+        X = Q['D']
 
-        load = np.array([30.0, 30.0])
-        action = np.array([1.,-1.]) # [1,-1]-right, [-1,1]-left
-        A = np.array([0,-1,1])
+        # plt.plot(X[:,0],X[:,1], '.')
 
-        C = np.zeros((N,N))
-        for i in range(N):
-            for j in range(N):
-                pos = np.array([Sx[i,j], Sy[i,j]])
-                sa = np.concatenate((pos, load, action), axis = 0)
-                p, fail = K.probability(sa.reshape(1,-1))
-                # print sa, p, fail[0]==1
-                C[i,j] = p[1]
+        SA_test = X[np.random.choice(X.shape[0], 50000, replace=False),:8] 
 
-        h = plt.contourf(sx,sy,C)
-        plt.colorbar(h)
+        P = []
+        S = []
+        for i in range(SA_test.shape[0]):
+            sa = SA_test[i,:]
+            p, fail = K.probability(sa.reshape(1,-1))
+            fail = p[1]>0.5
+            # print p, fail
+            P.append(p[1])
+            S.append(sa)
+
+        P = np.array(P)
+        S = np.array(S)
+
+        plt.scatter(S[:,0], S[:,1], c=P, marker='o')
+        plt.colorbar()
+        plt.title('Position')
         plt.show()
+
+
+
+
+
+        
 
 
 

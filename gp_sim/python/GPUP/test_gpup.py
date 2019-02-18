@@ -11,7 +11,7 @@ from scipy.io import loadmat
 import time
 from sklearn.preprocessing import StandardScaler
 
-np.random.seed(10)
+# np.random.seed(10)
 
 saved = False
 discrete = True
@@ -58,6 +58,27 @@ Ytrain = Qtrain[:,state_action_dim:]
 Xtest = Qtest[:,0:state_action_dim]
 Ytest = Qtest[:,state_action_dim:]
 
+# Normalize
+x_max_X = np.max(Xtrain, axis=0)
+x_min_X = np.min(Xtrain, axis=0)
+x_max_Y = np.max(Ytrain, axis=0)
+x_min_Y = np.min(Ytrain, axis=0)
+
+for i in range(state_dim):
+    tmp = np.max([x_max_X[i], x_max_Y[i]])
+    x_max_X[i] = tmp
+    x_max_Y[i] = tmp
+    tmp = np.min([x_min_X[i], x_min_Y[i]])
+    x_min_X[i] = tmp
+    x_min_Y[i] = tmp
+
+for i in range(Xtrain.shape[1]):
+    Xtrain[:,i] = (Xtrain[:,i]-x_min_X[i])/(x_max_X[i]-x_min_X[i])
+    Xtest[:,i] = (Xtest[:,i]-x_min_X[i])/(x_max_X[i]-x_min_X[i])
+for i in range(Ytrain.shape[1]):
+    Ytrain[:,i] = (Ytrain[:,i]-x_min_Y[i])/(x_max_Y[i]-x_min_Y[i])
+    Ytest[:,i] = (Ytest[:,i]-x_min_Y[i])/(x_max_Y[i]-x_min_Y[i])
+
 print("Loading data to kd-tree...")
 Xtrain_nn = Xtrain# * W
 kdt = KDTree(Xtrain_nn, leaf_size=20, metric='euclidean')
@@ -75,8 +96,8 @@ def predict(sa, sigma2):
 
     for i in range(state_dim):
         if i == 0:
-            gpup_est = UncertaintyPropagation(X_nn[:,:state_dim], Y_nn[:,i], optimize = True, theta=None)
-            theta = gpup_est.cov.theta
+            gpup_est = UncertaintyPropagation(X_nn[:,:state_dim], Y_nn[:,i], optimize = False, theta=None)
+            theta = None#gpup_est.cov.theta
         else:
             gpup_est = UncertaintyPropagation(X_nn[:,:state_dim], Y_nn[:,i], optimize = False, theta=theta)
         m[i], s[i] = gpup_est.predict(sa[:state_dim].reshape(1,-1)[0], sigma2[:state_dim])
@@ -102,17 +123,17 @@ def reduction(sa, X, Y):
 print "Running GPUP."
 
 s = Xtest[0,:state_dim]
-sigma2_x = np.array([0.**2, 0.**2, 0.**2, 0.**2])
+sigma2_x = np.array([0.**2, 0.**2, 0.**2, 0.**2])+1e-3
 sigma2_u = np.array([0.**2, 0.**2])
 Ypred_mean = s.reshape(1,state_dim)
 Ypred_std = np.zeros((1,state_dim)).reshape(1,state_dim)
 
 print("Running (open loop) path...")
-for i in range(0, Xtest.shape[0]-258):
+for i in range(0, Xtest.shape[0]):
     print("Step " + str(i) + " of " + str(Xtest.shape[0]))
     a = Xtest[i,state_dim:state_action_dim]
     sa = np.concatenate((s,a)).reshape(-1,1)
-    sigma2 = np.diag(np.concatenate((sigma2_x, sigma2_u), axis=0))
+    sigma2 = np.concatenate((sigma2_x, sigma2_u), axis=0)
     s_next, sigma2_next = predict(sa, sigma2)
     # s_next = propagate(sa)
     print s_next

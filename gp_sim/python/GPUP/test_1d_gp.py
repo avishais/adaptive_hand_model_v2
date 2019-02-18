@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
 import GPy
 
-np.random.seed(2327864)
+np.random.seed(145453)
 
 def func(x, v = 0.3):
     return x*np.sin(x)+np.random.normal(0, v)
@@ -20,7 +20,7 @@ y_real = np.array([func(i, 0) for i in x_real])
 
 gp_est = GaussianProcess(x_data, y_data.reshape((-1,)), optimize = True, theta=None)
 
-x_n = np.array([1.26])
+x_n = np.array([3.0])
 m, s = gp_est.predict(x_n)
 
 # print(m,s)
@@ -48,8 +48,9 @@ ax1=plt.subplot(1, 2, 1)
 ax1.plot(x_data, y_data, '+k')
 ax1.plot(x_real, y_real, '--k')
 ax1.plot(x_n, m, '*y')
-msl = (means.reshape(1,-1)[0]-variances)#.reshape(-1,1)
-msu = (means.reshape(1,-1)[0]+variances)#.reshape(-1,1)[0]
+plt.errorbar(x_n, m, yerr=np.sqrt(s), ecolor='y')
+msl = (means.reshape(1,-1)[0]-np.sqrt(variances))#.reshape(-1,1)
+msu = (means.reshape(1,-1)[0]+np.sqrt(variances))#.reshape(-1,1)[0]
 ax1.plot(x_new, means,'-r')
 ax1.fill_between(x_new.reshape(1,-1)[0], msl, msu)
 plt.ylabel('f(x)')
@@ -59,8 +60,9 @@ ax2=plt.subplot(1, 2, 2)
 ax2.plot(x_data, y_data, '+k')
 ax2.plot(x_real, y_real, '--k')
 ax2.plot(x_n, my_n, '*y')
-msl = (my.reshape(1,-1)[0]-sy)#.reshape(-1,1)
-msu = (my.reshape(1,-1)[0]+sy)#.reshape(-1,1)[0]
+plt.errorbar(x_n, my_n, yerr=np.sqrt(sy_n), ecolor='y')
+msl = (my.reshape(1,-1)[0]-np.sqrt(sy))#.reshape(-1,1)
+msu = (my.reshape(1,-1)[0]+np.sqrt(sy))#.reshape(-1,1)[0]
 ax2.plot(x_new, my,'-r')
 ax2.fill_between(x_new.reshape(1,-1)[0], msl, msu)
 plt.ylabel('f(x)')

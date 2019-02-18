@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
 import GPy
 
-np.random.seed(2339867)
+np.random.seed(145453)
 
 def func(x, v = 0.3):
     return x*np.sin(x)+np.random.normal(0, v)
@@ -16,7 +16,7 @@ def func(x, v = 0.3):
 
 # x_data = np.linspace(0, 4, 5).reshape(-1,1)
 x_data = np.random.uniform(0, 4, 7).reshape(-1,1)
-y_data = np.array([func(i, 0.1) for i in x_data]) #
+y_data = np.array([func(i, 0.2) for i in x_data]) #
 plt.plot(x_data, y_data, '+k')
 plt.ylabel('f(x)')
 
@@ -26,13 +26,13 @@ plt.plot(x_real, y_real, '--k')
 
 gp_est = GaussianProcess(x_data, y_data, GaussianCovariance())
 
-x_n = np.array([1.26])
+x_n = np.array([3.0])
 m, s = gp_est.estimate(x_n)
 plt.plot(x_n, m, '*r')
 
 # print(m,s)
 
-x_new = np.linspace(0, 6, 100).reshape(-1,1)
+x_new = np.linspace(0, 6, 120).reshape(-1,1)
 means, variances = gp_est.estimate_many(x_new)
 # print(means)
 
@@ -47,8 +47,8 @@ means, variances = gp_est.estimate_many(x_new)
 # plt.plot(x_n, my_n, '*c')
 # plt.plot(x_new, my, '-c')
 
-msl = (means.reshape(1,-1)[0]-variances)#.reshape(-1,1)
-msu = (means.reshape(1,-1)[0]+variances)#.reshape(-1,1)[0]
+msl = (means.reshape(1,-1)[0]-np.sqrt(variances))#.reshape(-1,1)
+msu = (means.reshape(1,-1)[0]+np.sqrt(variances))#.reshape(-1,1)[0]
 plt.plot(x_new, means,'-r')
 plt.fill_between(x_new.reshape(1,-1)[0], msl, msu)
 
@@ -60,14 +60,14 @@ print "----------------------------------------------"
 
 
 mean = np.array([3.0]) # The mean of a normal distribution
-Sigma = np.diag([0.1**2]) # The covariance matrix (must be diagonal because of lazy programming)
+Sigma = np.diag([0.2**2]) # The covariance matrix (must be diagonal because of lazy programming)
 
 up = UncertaintyPropagationExact(gp_est)
 
 out_mean, out_variance = up.propagate_GA(mean, Sigma)
 print(out_mean, out_variance)
-# plt.errorbar(mean, out_mean, yerr=np.sqrt(out_variance))
-
+plt.errorbar(mean, out_mean, yerr=np.sqrt(out_variance))
+exit(1)
 print "----------------------------------------------"
 
 

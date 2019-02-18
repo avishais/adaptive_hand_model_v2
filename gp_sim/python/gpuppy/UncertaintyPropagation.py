@@ -252,9 +252,10 @@ if not cython:
 			"""
 			#D = len(xi)
 			I = np.eye(D)
-			self.Deltainv = self.Winv - np.diag(
-				np.array([self.Winv[i][i] / (1 + self.Winv[i][i] * self.Sigma_x[i][i]) for i in range(D)]))
+			self.Deltainv = self.Winv - np.diag(np.array([self.Winv[i][i] / (1 + self.Winv[i][i] * self.Sigma_x[i][i]) for i in range(D)]))
 			self.normalize_C_corr = 1 / np.sqrt(det(I + self.Winv * self.Sigma_x))
+
+			print self.Winv, np.diag(np.array([self.Winv[i][i] / (1 + self.Winv[i][i] * self.Sigma_x[i][i]) for i in range(D)])), self.Deltainv
 
 		def _get_C_corr(self, u, xi):
 			"""
@@ -263,6 +264,7 @@ if not cython:
 			:return: covariance correction factor
 			"""
 			diff = u - xi
+
 			return  self.normalize_C_corr * np.exp(0.5 * (np.dot(diff.T, np.dot(self.Deltainv, diff)))) # (3.40)
 
 
@@ -285,6 +287,8 @@ if not cython:
 
 			sum = 0.0
 			for i in range(N):
+				# print x[i]
+				# print self._get_C_corr(u, x[i])
 				sum += beta[i] * C_ux[i] * self._get_C_corr(u, x[i])
 
 			return sum
@@ -301,7 +305,6 @@ if not cython:
 			W = np.diag(np.array([1 / self.Winv[i][i] for i in range(D)]))
 			self.LambdaInv = 2 * self.Winv - inv(0.5 * W + self.Sigma_x)
 			self.normalize_C_corr2 = 1 / np.sqrt(det(2 * self.Winv * self.Sigma_x + I))
-
 
 		def _get_C_corr2(self, u, x):
 			"""
@@ -329,7 +332,6 @@ if not cython:
 			#Kinv = inv(self.gp.cov_matrix())
 			N,d = x.shape
 			assert(N == len(beta))
-
 
 			self._prepare_C_corr2(len(u))
 

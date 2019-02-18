@@ -11,7 +11,7 @@ from scipy.io import loadmat
 import time
 from sklearn.preprocessing import StandardScaler
 
-np.random.seed(10)
+# np.random.seed(10)
 
 saved = False
 discrete = True
@@ -23,7 +23,7 @@ if useDiffusionMaps:
     K_manifold = 100
     df = DiffusionMap(sigma=1, embedding_dim=2, k=K)
 else:
-    K = 100
+    K = 200
 K_up = 100
 
 print('Loading data...')
@@ -130,6 +130,6 @@ for i in range(Ypred_std.shape[0]):
 # for i in range(Ypred.shape[0]-1):
 #     plt.plot(np.array([Xtest[i,0], Ypred[i,0]]), np.array([Xtest[i,1], Ypred[i,1]]), 'r.-')
 plt.axis('equal')
-plt.title('GPUP')
+plt.title('GP')
 plt.grid(True)
 plt.show()
